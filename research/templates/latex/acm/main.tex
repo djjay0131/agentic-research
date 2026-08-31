@@ -1,0 +1,43 @@
+%% {{PROJECT_NAME}} — ACM sigconf
+%% Build: ../scripts/build.sh   Watch: ../scripts/watch.sh
+%% acmart.cls and ACM-Reference-Format.bst ARE vendored by this plugin and are
+%% copied into your paper/ dir only when kpsewhich finds no system install.
+%% acmart needs: tlmgr install libertine newtx txfonts inconsolata comment \
+%%               ncctools preprint totpages environ trimspaces textcase
+\documentclass[sigconf,nonacm]{acmart}
+%% Remove `nonacm` and fill in the rights block when you have the ACM DOI.
+
+\usepackage{booktabs}
+\usepackage{graphicx}
+\graphicspath{{../figures/}}
+
+\begin{document}
+
+\title{{{TITLE}}}
+
+\author{{{AUTHOR}}}
+\affiliation{%
+  \institution{{{INSTITUTION}}}
+  \city{{{CITY}}}
+  \country{{{COUNTRY}}}}
+\email{{{EMAIL}}}
+
+\begin{abstract}
+\input{sections/00_abstract}
+\end{abstract}
+
+\keywords{{{KEYWORDS}}}
+
+\maketitle
+
+\input{sections/01_introduction}
+\input{sections/02_background}
+\input{sections/03_approach}
+\input{sections/04_evaluation}
+\input{sections/05_discussion}
+\input{sections/06_conclusion}
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{references}
+
+\end{document}

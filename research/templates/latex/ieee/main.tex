@@ -1,0 +1,45 @@
+%% {{PROJECT_NAME}} — IEEE conference
+%% Build: ../scripts/build.sh   Watch: ../scripts/watch.sh
+%% Needs IEEEtran.cls:  sudo tlmgr install ieeetran
+%%   (Debian/Ubuntu: sudo apt-get install texlive-publishers)
+%% Not vendored by this plugin - check with: kpsewhich IEEEtran.cls
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+
+\usepackage{cite}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\graphicspath{{../figures/}}
+\usepackage[hidelinks]{hyperref}
+
+\begin{document}
+
+\title{{{TITLE}}}
+
+\author{\IEEEauthorblockN{{{AUTHOR}}}
+\IEEEauthorblockA{\textit{{{INSTITUTION}}} \\
+{{CITY}}, {{COUNTRY}} \\
+{{EMAIL}}}}
+
+\maketitle
+
+\begin{abstract}
+\input{sections/00_abstract}
+\end{abstract}
+
+\begin{IEEEkeywords}
+{{KEYWORDS}}
+\end{IEEEkeywords}
+
+\input{sections/01_introduction}
+\input{sections/02_background}
+\input{sections/03_approach}
+\input{sections/04_evaluation}
+\input{sections/05_discussion}
+\input{sections/06_conclusion}
+
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+
+\end{document}

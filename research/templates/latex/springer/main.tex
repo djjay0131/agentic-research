@@ -1,0 +1,37 @@
+%% {{PROJECT_NAME}} — Springer LNCS
+%% Build: ../scripts/build.sh   Watch: ../scripts/watch.sh
+%% Needs llncs.cls:  sudo tlmgr install llncs
+%% Not vendored by this plugin - check with: kpsewhich llncs.cls
+%% Needs: tlmgr install llncs  (or drop llncs.cls beside this file)
+\documentclass[runningheads]{llncs}
+
+\usepackage{booktabs}
+\usepackage{graphicx}
+\graphicspath{{../figures/}}
+\usepackage[hidelinks]{hyperref}
+
+\begin{document}
+
+\title{{{TITLE}}}
+\author{{{AUTHOR}}}
+\institute{{{INSTITUTION}}, {{CITY}}, {{COUNTRY}}\\
+\email{{{EMAIL}}}}
+
+\maketitle
+
+\begin{abstract}
+\input{sections/00_abstract}
+\keywords{{{KEYWORDS}}}
+\end{abstract}
+
+\input{sections/01_introduction}
+\input{sections/02_background}
+\input{sections/03_approach}
+\input{sections/04_evaluation}
+\input{sections/05_discussion}
+\input{sections/06_conclusion}
+
+\bibliographystyle{splncs04}
+\bibliography{references}
+
+\end{document}

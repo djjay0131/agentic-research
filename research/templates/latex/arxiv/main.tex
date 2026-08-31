@@ -1,0 +1,36 @@
+%% {{PROJECT_NAME}} — arXiv preprint
+%% Build: ../scripts/build.sh   Package: ../scripts/arxiv-package.sh
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\graphicspath{{../figures/}}
+\usepackage[numbers]{natbib}
+\usepackage[hidelinks]{hyperref}
+\usepackage{authblk}
+
+\title{{{TITLE}}}
+\author[1]{{{AUTHOR}}}
+\affil[1]{{{INSTITUTION}}, \texttt{{{EMAIL}}}}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\input{sections/00_abstract}
+\end{abstract}
+
+\input{sections/01_introduction}
+\input{sections/02_background}
+\input{sections/03_approach}
+\input{sections/04_evaluation}
+\input{sections/05_discussion}
+\input{sections/06_conclusion}
+
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\end{document}

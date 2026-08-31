@@ -1,0 +1,41 @@
+name: research-checks
+
+on:
+  pull_request:
+    paths:
+      - '**.tex'
+      - '**.bib'
+      - 'docs/research-delta.md'
+      - 'scripts/**'
+  workflow_dispatch:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install TeX Live
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            texlive-latex-recommended texlive-latex-extra texlive-fonts-recommended \
+            texlive-fonts-extra texlive-bibtex-extra biber latexmk poppler-utils
+
+      - name: Structural checks
+        run: node scripts/research-checks.mjs
+
+      - name: Compile and check page limit
+        run: node scripts/research-checks.mjs --compile
+
+      - name: Upload PDF
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: paper-pdf
+          path: build/*.pdf
+          if-no-files-found: ignore
