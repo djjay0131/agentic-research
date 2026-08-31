@@ -28,9 +28,31 @@ It interviews you (paper type, venue, page limit, deadline), writes
 verifies the skeleton compiles. Then:
 
 ```bash
-./scripts/watch.sh          # rebuild on every save
-./scripts/wordcount.sh      # words per section against its budget
-./scripts/build.sh          # one-shot -> build/main.pdf
+./paper/scripts/watch.sh          # rebuild on every save
+./paper/scripts/wordcount.sh      # words per section against its budget
+./paper/scripts/build.sh          # one-shot -> paper/build/main.pdf
+```
+
+## Layout
+
+The paper subtree is self-contained, so it never collides with source code at
+the repo root and can be moved elsewhere intact:
+
+```
+repo/
+├── paper/                  # or proposal/ — everything paper-related
+│   ├── main.tex
+│   ├── sections/           # each with a "% WORD BUDGET: N" header
+│   ├── references.bib
+│   ├── figures/
+│   ├── scripts/            # build, watch, wordcount, arxiv, overleaf, checks
+│   └── build/              # the PDF lands here (git-ignored)
+├── llm/
+│   ├── construction/       # design/ requirements/ sprints/
+│   └── memory_bank/
+├── docs/research-delta.md  # the single source of truth for all paths
+├── files/                  # source material — shared with the code side
+└── src/  tests/            # your code, untouched
 ```
 
 ## What you get
@@ -63,8 +85,8 @@ verifies the skeleton compiles. Then:
 `build.sh` · `watch.sh` · `wordcount.sh` · `arxiv-package.sh` ·
 `overleaf-sync.sh` · `research-checks.mjs`
 
-They read your layout from `scripts/_paths.sh`, so a repo using `proposal/`
-instead of `paper/` needs no edits.
+They live in `<paper>/scripts/` and derive their own paths, so a repo using
+`proposal/` instead of `paper/` needs no edits.
 
 ## The delta
 

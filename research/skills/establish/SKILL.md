@@ -47,7 +47,8 @@ existing `.tex` files, directory names, git remote).
    including appendix. Store the integer; `research-checks.mjs` enforces it.
 4. **Deadline** — a date, or "none".
 5. **Layout generation** — offer, in this order:
-   - `paper/` + `construction/` + `llm/memory_bank/` **(recommended default)**
+   - `paper/` (self-contained) + `llm/construction/` + `llm/memory_bank/`
+     **(recommended default)**
    - `proposal/` instead of `paper/` when the type is a proposal
    - keep an existing layout you detected, if the repo already has one
 6. **Does code live here too?** If yes, also create `experiments/`, `scripts/`,
@@ -93,17 +94,37 @@ fails the repo if any survive.
 
 ## Step 4 — Scaffold the layout
 
+**The paper subtree is self-contained.** The document, its figures, its scripts
+and its build output all live under `<paper>/`. That keeps every paper artifact
+together, lets the subtree be moved or copied to another repo intact, and means
+a repo that also holds source code has no collision between `src/` and the
+paper's own `scripts/` or `build/`.
+
+`files/` is the deliberate exception: it stays at the repo root, because source
+material (a CFP, reference PDFs, notes) is often needed by the code side too.
+
 ```
-<paper>/           main.tex (from templates/latex/<template>/), sections/, references.bib
-<construction>/    design/, requirements/, sprints/, spec_builder.md
-<memory-bank>/     the 9 memory-bank files, archive/
-files/             (empty, with a README explaining it holds source material)
-figures/           (empty)
-build/             (git-ignored)
-docs/              research-delta.md
-scripts/           build.sh watch.sh wordcount.sh arxiv-package.sh overleaf-sync.sh
-                   _paths.sh research-checks.mjs
+<paper>/                  paper/ | proposal/ | writeup/  — self-contained
+  main.tex                from templates/latex/<template>/
+  sections/               the section skeleton, with word-budget headers
+  references.bib
+  figures/
+  scripts/                build.sh watch.sh wordcount.sh arxiv-package.sh
+                          overleaf-sync.sh _paths.sh research-checks.mjs
+  build/                  the PDF lands here — git-ignored
+llm/
+  construction/           design/  requirements/  sprints/  spec_builder.md
+  memory_bank/            the 9 memory-bank files, archive/
+docs/
+  research-delta.md
+files/                    shared source material — REPO ROOT, not the subtree
+src/  tests/  data/       untouched if the repo also holds code
 ```
+
+**Defaults, unless the user chose otherwise in Step 2:** `<construction>` is
+`llm/construction/` and `<memory-bank>` is `llm/memory_bank/` — both under
+`llm/`, never at the repo root. Do not scaffold a bare `construction/` at the
+top level.
 
 The memory bank is created **unconditionally** — it is part of the research
 scaffold and does not come from `agentic-governance`. This plugin has no
@@ -154,32 +175,34 @@ it was vendored by `/research:establish` and may be replaced by a system install
 
 ## Step 5 — Install the local build scripts
 
-Copy `templates/scripts/*` into `scripts/` and `chmod +x` them. Then write
-`scripts/_paths.sh` with this repo's real values:
+Copy `templates/scripts/*` into **`<paper>/scripts/`** and `chmod +x` them.
+Also copy `research-checks.mjs` from `${CLAUDE_PLUGIN_ROOT}/scripts/` into the
+same directory.
+
+`_paths.sh` derives `PAPER_ROOT` from its own location and `REPO_ROOT` from
+git, so only these need substituting:
 
 ```bash
-PAPER_DIR="paper"        # or proposal/, writeup/
 MAIN_TEX="main.tex"
-BUILD_DIR="build"
-FIGURES_DIR="figures"
 PAGE_LIMIT="10"          # 0 for no limit
 ```
 
-Every script sources this file, so a repo using `proposal/` needs no script edits.
-
-Copy `scripts/research-checks.mjs` from `${CLAUDE_PLUGIN_ROOT}/scripts/`.
+Every script sources it, so a repo using `proposal/` needs no script edits.
 
 Tell the user, in these words, what they now have:
 
 ```
-./scripts/build.sh          one-shot build -> build/main.pdf
-./scripts/watch.sh          rebuild on every save, Ctrl-C to stop
-./scripts/watch.sh --view   same, plus open the PDF viewer
-./scripts/wordcount.sh      words per section against its budget
-./scripts/arxiv-package.sh  arXiv tarball with the .bbl shipped
-./scripts/overleaf-sync.sh  push/pull to an Overleaf project
-node scripts/research-checks.mjs --compile
+./<paper>/scripts/build.sh          one-shot build -> <paper>/build/main.pdf
+./<paper>/scripts/watch.sh          rebuild on every save, Ctrl-C to stop
+./<paper>/scripts/watch.sh --view   same, plus open the PDF viewer
+./<paper>/scripts/wordcount.sh      words per section against its budget
+./<paper>/scripts/arxiv-package.sh  arXiv tarball with the .bbl shipped
+./<paper>/scripts/overleaf-sync.sh  push/pull to an Overleaf project
+node <paper>/scripts/research-checks.mjs --compile
 ```
+
+`research-checks.mjs` walks up for `docs/research-delta.md`, so it works from
+the repo root, from inside the paper subtree, or from CI.
 
 ## Step 6 — CLAUDE.md
 
@@ -189,7 +212,7 @@ do not overwrite it — show the user the sections to merge in.
 
 ## Step 7 — Git and CI
 
-- Append to `.gitignore`: `build/`, and the LaTeX intermediates
+- Append to `.gitignore`: `<paper>/build/`, and the LaTeX intermediates
   (`*.aux *.log *.out *.bbl *.blg *.fls *.fdb_latexmk *.synctex.gz *.toc`).
   **Do not** ignore `*.pdf` blindly — some venues want the PDF committed; ask.
 - Copy `templates/github/pr-review.yml` → `.github/workflows/` and adjust it to
@@ -206,17 +229,17 @@ next action. Leave the rest as templates.
 
 Run, in order:
 
-1. `./scripts/build.sh` — **the skeleton must compile before you report success.**
+1. `./<paper>/scripts/build.sh` — **the skeleton must compile before you report success.**
    If it fails on a missing class, go back to Step 4a. If it fails on a missing
    font package (acmart needs `libertine` and friends), print the exact `tlmgr
    install` line. Do not tell the user the repo is ready while the build is red.
-2. `node scripts/research-checks.mjs` — expect passes with warnings; no FAILs.
+2. `node <paper>/scripts/research-checks.mjs` — expect passes with warnings; no FAILs.
 
 Then report:
 
 - What was created, as a tree
 - What the user must fill in next (title, abstract, the first outline)
-- The exact command to start writing: `./scripts/watch.sh`
+- The exact command to start writing: `./<paper>/scripts/watch.sh`
 - Whether `agentic-governance` was detected and what to paste into its delta
 - Anything missing from the toolchain, with the command to fix it
 
@@ -228,6 +251,28 @@ Do not overwrite. Instead:
 2. Diff the existing delta against `templates/research-delta-template.md` and add
    only the fields the template has and the delta lacks. Never change a value
    the user has set.
-3. Refresh `scripts/` and `scripts/research-checks.mjs` from the templates
-   (these are plugin-owned), preserving `scripts/_paths.sh`.
+3. Refresh `<paper>/scripts/` and its `research-checks.mjs` from the templates
+   (these are plugin-owned), preserving `<paper>/scripts/_paths.sh`. If the repo
+   predates v1.1 and has `scripts/` or `construction/` at the root, say so and
+   offer the migration in §Upgrade: layout move.
 4. Report every change as a list, and update the version pin last.
+
+
+## Upgrade: layout move (pre-v1.1 repos)
+
+Repos scaffolded before v1.1 have `scripts/`, `figures/` and `build/` at the
+repo root and may have a bare `construction/`. Offer to migrate, and use
+`git mv` so history follows:
+
+```bash
+git mv scripts <paper>/scripts
+git mv figures <paper>/figures
+mkdir -p llm && git mv construction llm/construction
+```
+
+Then update `docs/research-delta.md` to the new paths, replace
+`<paper>/scripts/_paths.sh` with the current template, fix `\graphicspath` in
+the main `.tex` (it becomes `{{figures/}}` once figures sit beside it), and
+update `.github/workflows/` and `CLAUDE.md` to the new script paths. Rebuild and
+re-run the checks before reporting done. Never move a directory the user has
+declined to move.

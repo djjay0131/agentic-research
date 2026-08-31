@@ -9,16 +9,24 @@ plugin. Layout paths, venue facts, and deadlines live in **`docs/research-delta.
 that file is the single source of truth, and every agent reads it. If you move a
 directory, update the delta, not the agents.
 
+The paper subtree is **self-contained** — document, figures, scripts and build
+output all live under `{{PAPER_DIR}}/`, so it never collides with code at the
+repo root and can be moved elsewhere intact. `files/` is the exception: it sits
+at the root because code and paper may both draw on it.
+
 | Path | What lives here |
 |---|---|
-| `{{PAPER_DIR}}/` | The document itself — `{{MAIN_TEX}}`, `sections/`, `{{BIB_BASENAME}}` |
+| `{{PAPER_DIR}}/{{MAIN_TEX}}` | The document |
+| `{{PAPER_DIR}}/sections/` | Section files, each with a `% WORD BUDGET:` header |
+| `{{PAPER_DIR}}/{{BIB_BASENAME}}` | Bibliography |
+| `{{PAPER_DIR}}/figures/` | Figures — `\includegraphics{name}` resolves here |
+| `{{PAPER_DIR}}/scripts/` | Build, watch, wordcount, arXiv, Overleaf, checks |
+| `{{PAPER_DIR}}/build/` | Compiled PDF. Not committed. |
 | `{{CONSTRUCTION_DIR}}/design/` | Outlines and section plans, written before prose |
 | `{{CONSTRUCTION_DIR}}/requirements/` | Citation matrix, submission checklist, CFP analysis |
 | `{{CONSTRUCTION_DIR}}/sprints/` | Sprint plans and status |
 | `{{MEMORY_BANK_DIR}}/` | Living project memory — read `activeContext.md` first |
-| `files/` | Source material: the CFP, papers, notes, venue guidelines |
-| `figures/` | Figures referenced by the document |
-| `build/` | Compiled output. Not committed. |
+| `files/` | Source material: the CFP, papers, notes. **Repo root, shared.** |
 
 ## Submission
 
@@ -33,12 +41,12 @@ directory, update the delta, not the agents.
 ## Working on this paper
 
 ```bash
-./scripts/build.sh          # one-shot build -> build/{{MAIN_STEM}}.pdf
-./scripts/watch.sh          # rebuild on every save (Ctrl-C to stop)
-./scripts/watch.sh --view   # same, and open the PDF viewer
-./scripts/wordcount.sh      # words per section vs the budget in its header
-./scripts/arxiv-package.sh  # arXiv-ready tarball with the .bbl shipped
-node scripts/research-checks.mjs --compile   # the full mechanical gate
+./{{PAPER_DIR}}/scripts/build.sh          # -> {{PAPER_DIR}}/build/{{MAIN_STEM}}.pdf
+./{{PAPER_DIR}}/scripts/watch.sh          # rebuild on every save (Ctrl-C to stop)
+./{{PAPER_DIR}}/scripts/watch.sh --view   # same, and open the PDF viewer
+./{{PAPER_DIR}}/scripts/wordcount.sh      # words per section vs its budget
+./{{PAPER_DIR}}/scripts/arxiv-package.sh  # arXiv tarball with the .bbl shipped
+node {{PAPER_DIR}}/scripts/research-checks.mjs --compile   # full mechanical gate
 ```
 
 ## Agents
@@ -67,7 +75,7 @@ node scripts/research-checks.mjs --compile   # the full mechanical gate
 2. **No citation without verification.** `citation-agent` verifies against Crossref,
    arXiv, or OpenAlex. A reference that resolves nowhere is treated as fabricated.
 3. **Every number is re-derived by a human.** Agent output is a draft, never evidence.
-4. **The build stays green.** `./scripts/build.sh` must exit 0 before any commit.
+4. **The build stays green.** `./{{PAPER_DIR}}/scripts/build.sh` must exit 0 before any commit.
 
 ## Current status
 

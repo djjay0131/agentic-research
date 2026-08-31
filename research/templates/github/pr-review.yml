@@ -27,15 +27,15 @@ jobs:
             texlive-fonts-extra texlive-bibtex-extra biber latexmk poppler-utils
 
       - name: Structural checks
-        run: node scripts/research-checks.mjs
+        run: node {{PAPER_DIR}}/scripts/research-checks.mjs
 
       - name: Compile and check page limit
-        run: node scripts/research-checks.mjs --compile
+        run: node {{PAPER_DIR}}/scripts/research-checks.mjs --compile
 
       - name: Upload PDF
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: paper-pdf
-          path: build/*.pdf
+          path: {{PAPER_DIR}}/build/*.pdf
           if-no-files-found: ignore

@@ -19,16 +19,22 @@ Type: {{PAPER_TYPE}}
 
 ## Layout Paths
 
-| Field | Value |
-|---|---|
-| Paper Path | `{{PAPER_DIR}}/` |
-| Main Tex | `{{MAIN_TEX}}` |
-| Bibliography | `{{BIB_PATH}}` |
-| Construction Path | `{{CONSTRUCTION_DIR}}/` |
-| Memory Bank | `{{MEMORY_BANK_DIR}}/` |
-| Figures | `figures/` |
-| Build Output | `build/` |
-| Source Material | `files/` |
+The paper subtree is self-contained: the document, its figures, its scripts and
+its build output all live under `{{PAPER_DIR}}/`, so it can be moved to another
+repo intact and never collides with code at the repo root. `files/` is the
+exception — it stays at the root because code and paper may both draw on it.
+
+| Field | Value | Where |
+|---|---|---|
+| Paper Path | `{{PAPER_DIR}}/` | repo root |
+| Main Tex | `{{MAIN_TEX}}` | in the paper subtree |
+| Bibliography | `{{BIB_PATH}}` | in the paper subtree |
+| Figures | `{{PAPER_DIR}}/figures/` | in the paper subtree |
+| Build Output | `{{PAPER_DIR}}/build/` | in the paper subtree, git-ignored |
+| Scripts | `{{PAPER_DIR}}/scripts/` | in the paper subtree |
+| Construction Path | `{{CONSTRUCTION_DIR}}/` | under `llm/` |
+| Memory Bank | `{{MEMORY_BANK_DIR}}/` | under `llm/` |
+| Source Material | `files/` | repo root, shared with code |
 
 ## Venue
 
@@ -64,6 +70,7 @@ Governance delta present: {{HAS_GOVERNANCE}}
        deny {{PAPER_DIR}}/**
        deny {{CONSTRUCTION_DIR}}/design/**
        deny {{CONSTRUCTION_DIR}}/requirements/**
+       allow {{PAPER_DIR}}/build/** path-only
 -->
 
 ## Section Word Budgets

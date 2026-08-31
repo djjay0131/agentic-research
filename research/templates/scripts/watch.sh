@@ -1,16 +1,14 @@
 #!/usr/bin/env bash
 # Continuous local build: recompiles on every save. Ctrl-C to stop.
 #
-#   ./scripts/watch.sh            # watch, no viewer (default: quiet)
-#   ./scripts/watch.sh --view     # watch + auto-open the PDF viewer
+#   ./paper/scripts/watch.sh            # watch, no viewer
+#   ./paper/scripts/watch.sh --view     # watch + open the PDF viewer
 set -euo pipefail
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-. "$ROOT/scripts/_paths.sh"
-cd "$ROOT/$PAPER_DIR"
+. "$(dirname "${BASH_SOURCE[0]}")/_paths.sh"
+cd "$PAPER_ROOT"
 
-# acmart pulls a font stack that is not in a minimal TeX Live.
 if grep -q 'documentclass.*acmart' "$MAIN_TEX" 2>/dev/null \
-   && ! kpsewhich libertine.sty >/dev/null 2>&1; then
+   && ! kpsewhich libertine.sty >/dev/null 2>&1 && [ ! -f acmart.cls ]; then
   cat >&2 <<'MSG'
 WARNING: `libertine` is missing and acmart needs it. Install acmart's fonts:
 

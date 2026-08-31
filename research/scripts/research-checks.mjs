@@ -12,10 +12,22 @@
  * WARN never fails the build; FAIL always does.
  */
 import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
-import { join, extname } from 'node:path';
+import { join, extname, dirname } from 'node:path';
 import { execSync } from 'node:child_process';
 
-const ROOT = process.cwd();
+// Locate the repo root by walking up for docs/research-delta.md, so the script
+// works from the repo root, from inside the paper subtree, or from CI.
+function findRoot(start) {
+  let d = start;
+  for (let i = 0; i < 8; i++) {
+    if (existsSync(join(d, 'docs', 'research-delta.md'))) return d;
+    const up = dirname(d);
+    if (up === d) break;
+    d = up;
+  }
+  return start;
+}
+const ROOT = findRoot(process.cwd());
 const argv = process.argv.slice(2);
 const WANT_COMPILE = argv.includes('--compile');
 const AS_JSON = argv.includes('--json');
@@ -63,6 +75,8 @@ if (!delta) {
       : fail('delta.version', 'no "Research: agentic-research vX.Y" pin found');
 
   cfg.paperDir    = field('Paper Path') || field('Paper Directory') || 'paper';
+  cfg.figures     = field('Figures');
+  cfg.buildDir    = field('Build Output');
   cfg.mainTex     = field('Main Tex') || 'main.tex';
   cfg.bib         = field('Bibliography') || field('Bib Path');
   cfg.memoryBank  = field('Memory Bank');
