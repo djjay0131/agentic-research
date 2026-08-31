@@ -204,17 +204,19 @@ if (delta) {
 
 /* ---------- 5b. Paper subtree is source-only ---------- */
 {
+  // Only the top level of the subtree — build/ is where output is SUPPOSED to go.
   const LITTER = ['.aux','.log','.out','.bbl','.blg','.fls','.fdb_latexmk','.synctex.gz','.toc','.pdf'];
   const found = [];
   const abs = join(ROOT, cfg.paperDir);
   if (existsSync(abs)) {
     for (const e of readdirSync(abs)) {
+      if (e === 'build') continue;
       if (LITTER.some((x) => e.endsWith(x))) found.push(e);
     }
   }
   found.length
-    ? warn('paper.clean', `build artifacts beside your source in ${cfg.paperDir}/: ${found.join(', ')} — these predate the -outdir build; safe to delete`)
-    : pass('paper.clean', `${cfg.paperDir}/ holds source only`);
+    ? warn('paper.clean', `build artifacts loose beside your source in ${cfg.paperDir}/: ${found.join(', ')} — these predate the -outdir build; safe to delete`)
+    : pass('paper.clean', `no build artifacts loose in ${cfg.paperDir}/ (output goes to ${cfg.paperDir}/build/)`);
 }
 
 /* ---------- 6. Memory bank completeness ---------- */
@@ -234,7 +236,7 @@ if (WANT_COMPILE) {
   // Derived output goes to the repo-root build dir, never beside main.tex.
   const buildDir = (cfg.buildDir && cfg.buildDir.toLowerCase() !== 'none')
     ? cfg.buildDir.replace(/\/+$/, '')
-    : `build/${cfg.paperDir.split('/').pop()}`;
+    : `${cfg.paperDir}/build`;
   const absBuild = join(ROOT, buildDir);
   try {
     execSync(`mkdir -p ${JSON.stringify(absBuild)} && latexmk -pdf -outdir=${JSON.stringify(absBuild)} -interaction=nonstopmode -halt-on-error ${cfg.mainTex}`,

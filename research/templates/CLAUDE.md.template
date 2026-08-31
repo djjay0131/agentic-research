@@ -9,10 +9,11 @@ plugin. Layout paths, venue facts, and deadlines live in **`docs/research-delta.
 that file is the single source of truth, and every agent reads it. If you move a
 directory, update the delta, not the agents.
 
-The paper subtree holds **source only** — document, sections, figures and
-scripts under `{{PAPER_DIR}}/`. Nothing is ever written beside `main.tex`:
-`latexmk -outdir` sends the PDF and every `.aux`/`.log`/`.bbl` to `build/` at
-the repo root. `files/` also sits at the root, shared with the code side.
+The paper subtree is **fully self-contained** — document, sections, figures,
+scripts and build output all under `{{PAPER_DIR}}/`. Nothing is written loose
+beside `main.tex`: `latexmk -outdir` funnels the PDF and every
+`.aux`/`.log`/`.bbl` into `{{PAPER_DIR}}/build/`. `files/` sits at the repo
+root, shared with the code side.
 
 | Path | What lives here |
 |---|---|
@@ -21,13 +22,14 @@ the repo root. `files/` also sits at the root, shared with the code side.
 | `{{PAPER_DIR}}/{{BIB_BASENAME}}` | Bibliography |
 | `{{PAPER_DIR}}/figures/` | Figures — `\includegraphics{name}` resolves here |
 | `{{PAPER_DIR}}/scripts/` | Build, watch, wordcount, arXiv, Overleaf, checks |
+| `{{PAPER_DIR}}/build/` | The PDF and every LaTeX intermediate. Git-ignored, derived — delete it any time. |
 
 | `{{CONSTRUCTION_DIR}}/design/` | Outlines and section plans, written before prose |
 | `{{CONSTRUCTION_DIR}}/requirements/` | Citation matrix, submission checklist, CFP analysis |
 | `{{CONSTRUCTION_DIR}}/sprints/` | Sprint plans and status |
 | `{{MEMORY_BANK_DIR}}/` | Living project memory — read `activeContext.md` first |
 | `files/` | Source material: the CFP, papers, notes. **Repo root, shared.** |
-| `build/{{PAPER_DIR}}/` | The PDF and every LaTeX intermediate. **Repo root, git-ignored, derived** — delete it any time. |
+
 
 ## Submission
 
@@ -42,7 +44,7 @@ the repo root. `files/` also sits at the root, shared with the code side.
 ## Working on this paper
 
 ```bash
-./{{PAPER_DIR}}/scripts/build.sh          # -> build/{{PAPER_DIR}}/{{MAIN_STEM}}.pdf
+./{{PAPER_DIR}}/scripts/build.sh          # -> {{PAPER_DIR}}/build/{{MAIN_STEM}}.pdf
 ./{{PAPER_DIR}}/scripts/watch.sh          # rebuild on every save (Ctrl-C to stop)
 ./{{PAPER_DIR}}/scripts/watch.sh --view   # same, and open the PDF viewer
 ./{{PAPER_DIR}}/scripts/wordcount.sh      # words per section vs its budget

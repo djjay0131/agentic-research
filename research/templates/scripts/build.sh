@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# One-shot build. All output — PDF and every intermediate — lands in $BUILD_DIR.
-# Nothing is written into the paper subtree, which stays source-only.
+# One-shot build. All output — PDF and every intermediate — lands in
+# <paper>/build/. Nothing is written loose beside main.tex.
 set -euo pipefail
 . "$(dirname "${BASH_SOURCE[0]}")/_paths.sh"
 cd "$PAPER_ROOT"

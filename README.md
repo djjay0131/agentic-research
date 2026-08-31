@@ -55,9 +55,9 @@ verifies the skeleton compiles. Then:
 
 ## Layout
 
-The paper subtree holds **source only** — `latexmk -outdir` sends the PDF and
-every intermediate to `build/` at the repo root, so nothing is ever written
-beside `main.tex`:
+The paper subtree is fully self-contained — `latexmk -outdir` funnels the PDF
+and every intermediate into `paper/build/`, so nothing is written loose beside
+`main.tex` and the paper adds exactly one top-level directory:
 
 ```
 repo/
@@ -66,8 +66,8 @@ repo/
 │   ├── sections/           # each with a "% WORD BUDGET: N" header
 │   ├── references.bib
 │   ├── figures/
-│   └── scripts/            # build, watch, wordcount, arxiv, overleaf, checks
-├── build/paper/            # PDF + every LaTeX intermediate (git-ignored)
+│   ├── scripts/            # build, watch, wordcount, arxiv, overleaf, checks
+│   └── build/              # PDF + every LaTeX intermediate (git-ignored)
 ├── llm/
 │   ├── construction/       # design/ requirements/ sprints/
 │   └── memory_bank/

@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.3.0 — 2026-08-31
+
+Build output moves back inside the paper subtree: `<paper>/build/`, not a
+`build/` at the repo root.
+
+v1.2.0 fixed the real problem — `latexmk -outdir` stops intermediates being
+written loose beside `main.tex` — but sent them to a new root-level `build/`.
+That added a top-level directory for no benefit the subtree could not provide
+itself. The paper now adds **exactly one** top-level entry, and the subtree is
+self-contained in source *and* output: move `paper/` to another repo and its
+build still works.
+
+`.gitignore` needs one line, `<paper>/build/`. The `paper.clean` check now scans
+only the top level of the subtree, since `build/` is where output belongs.
+
+Upgrading from v1.2.0: delete the root `build/` (it is derived) and rebuild.
+
 ## 1.2.0 — 2026-08-31
 
 From a real `/research:establish` test run. Six findings, all addressed.

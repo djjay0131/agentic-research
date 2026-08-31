@@ -37,5 +37,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: paper-pdf
-          path: build/{{PAPER_DIR}}/*.pdf
+          path: {{PAPER_DIR}}/build/*.pdf
           if-no-files-found: ignore

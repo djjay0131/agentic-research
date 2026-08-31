@@ -126,15 +126,15 @@ together, lets the subtree be moved or copied to another repo intact, and means
 a repo that also holds source code has no collision between `src/` and the
 paper's own `scripts/` or `build/`.
 
-Two deliberate exceptions live at the repo root:
+Output lives in the subtree too. The scripts pass `latexmk -outdir`, so the PDF
+*and* every `.aux`, `.log`, `.bbl`, `.fls` and `.fdb_latexmk` land in
+`<paper>/build/` and **nothing is ever written loose beside `main.tex`.**
+Never create a `build/` at the repo root — the whole point is that the paper
+adds exactly one top-level directory.
 
-- `files/` — source material (a CFP, reference PDFs, notes), because the code
-  side often needs it too.
-- `build/` — everything derived. The scripts pass `latexmk -outdir`, so the PDF
-  *and* every `.aux`, `.log`, `.bbl`, `.fls` and `.fdb_latexmk` land there and
-  **nothing is ever written beside `main.tex`.** One git-ignored directory holds
-  paper output and code build output alike. Never scaffold a `build/` inside the
-  paper subtree.
+`files/` is the one deliberate exception: it stays at the repo root, because
+source material (a CFP, reference PDFs, notes) is often needed by the code side
+too.
 
 ```
 <paper>/                  paper/ | proposal/ | writeup/  — self-contained
@@ -144,8 +144,8 @@ Two deliberate exceptions live at the repo root:
   figures/
   scripts/                build.sh watch.sh wordcount.sh arxiv-package.sh
                           overleaf-sync.sh _paths.sh research-checks.mjs
-build/<paper>/            the PDF AND every LaTeX intermediate — repo root,
-                          git-ignored, derived, safe to delete
+  build/                  the PDF AND every LaTeX intermediate — git-ignored,
+                          derived, safe to delete
 llm/
   construction/           design/  requirements/  sprints/  spec_builder.md
   memory_bank/            the 9 memory-bank files, archive/
@@ -259,7 +259,7 @@ do not overwrite it — show the user the sections to merge in.
 
 ## Step 7 — Git and CI
 
-- Append to `.gitignore`: `build/`. That one line covers everything derived,
+- Append to `.gitignore`: `<paper>/build/`. That one line covers everything derived,
   because `-outdir` keeps intermediates out of the source tree. Add the LaTeX
   intermediate patterns too, as a backstop for anyone who runs `pdflatex` by
   hand: `*.aux *.log *.out *.bbl *.blg *.fls *.fdb_latexmk *.synctex.gz *.toc`.
@@ -321,8 +321,8 @@ git mv figures <paper>/figures
 mkdir -p llm && git mv construction llm/construction
 ```
 
-If the repo has a `<paper>/build/` from v1.1, delete it (it is derived) and let
-the new scripts recreate `build/<paper>/` at the root. Also delete any
+If the repo has a root `build/` from v1.2, delete it (it is derived) and let the
+new scripts recreate `<paper>/build/`. Also delete any
 `.aux`/`.log`/`.bbl`/`.fls`/`.fdb_latexmk` sitting beside `main.tex` — with
 `-outdir` they will not come back.
 

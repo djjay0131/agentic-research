@@ -19,16 +19,17 @@ Type: {{PAPER_TYPE}}
 
 ## Layout Paths
 
-The paper subtree is self-contained **in source**: document, sections, figures
-and scripts all live under `{{PAPER_DIR}}/`, so it can be moved to another repo
+The paper subtree is fully self-contained: document, sections, figures, scripts
+and build output all live under `{{PAPER_DIR}}/`, so it can be moved to another repo
 intact and never collides with code at the repo root.
 
-Two deliberate exceptions, both at the repo root:
-- `files/` — source material, because code and paper may both draw on it.
-- `build/` — everything derived. `latexmk -outdir` sends the PDF *and* every
-  intermediate there, so nothing is ever written beside `main.tex`. One
-  git-ignored directory holds paper output and code build output alike, and it
-  is safe to delete at any time.
+Output included: `latexmk -outdir` funnels the PDF *and* every intermediate into
+`{{PAPER_DIR}}/build/`, so nothing is ever written loose beside `main.tex` and no
+build directory appears at the repo root. That directory is git-ignored and safe
+to delete at any time.
+
+One deliberate exception sits at the repo root: `files/` — source material,
+because the code side may draw on it too.
 
 | Field | Value | Where |
 |---|---|---|
@@ -37,7 +38,7 @@ Two deliberate exceptions, both at the repo root:
 | Bibliography | `{{BIB_PATH}}` | in the paper subtree |
 | Figures | `{{PAPER_DIR}}/figures/` | in the paper subtree |
 | Scripts | `{{PAPER_DIR}}/scripts/` | in the paper subtree |
-| Build Output | `build/{{PAPER_DIR}}/` | repo root, git-ignored, derived |
+| Build Output | `{{PAPER_DIR}}/build/` | in the subtree, git-ignored, derived |
 | Construction Path | `{{CONSTRUCTION_DIR}}/` | under `llm/` |
 | Memory Bank | `{{MEMORY_BANK_DIR}}/` | under `llm/` |
 | Source Material | `files/` | repo root, shared with code |
