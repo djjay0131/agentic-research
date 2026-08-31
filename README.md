@@ -74,6 +74,13 @@ paths from it. That is what lets one installed copy serve every project — and
 what stopped the same six agents from existing in twenty-three near-identical
 variants.
 
+## Does this need agentic-governance?
+
+**No.** `agentic-research` is standalone. Installing it alone gives you the full
+scaffold — the memory bank included, since that is part of the research layout,
+not something inherited from the governance plugin. Nothing in this plugin
+requires the other one to be installed.
+
 ## Composing with agentic-governance
 
 If the repo also has `docs/governance-delta.md`, `/research:establish` detects

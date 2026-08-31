@@ -76,12 +76,14 @@ if (!delta) {
 }
 
 /* ---------- 2. Layout ---------- */
-for (const [label, p] of [
-  ['paper dir', cfg.paperDir],
-  ['memory bank', cfg.memoryBank],
-  ['construction', cfg.construction],
+for (const [label, field, p] of [
+  ['paper dir', 'Paper Path', cfg.paperDir],
+  ['memory bank', 'Memory Bank', cfg.memoryBank],
+  ['construction', 'Construction Path', cfg.construction],
 ]) {
-  if (!p || p.toLowerCase() === 'none') continue;
+  // An undeclared path must never read as a passed check.
+  if (!p) { warn('layout', `${label} not declared in the delta ("${field}") — this check was skipped, not passed`); continue; }
+  if (p.toLowerCase() === 'none') { pass('layout', `${label} declared as "none"`); continue; }
   has(p) ? pass('layout', `${label} present at ${p}`)
          : fail('layout', `${label} declared as ${p} but missing on disk`);
 }
@@ -144,7 +146,9 @@ if (!bibPath || !has(bibPath)) {
 }
 
 /* ---------- 6. Memory bank completeness ---------- */
-if (cfg.memoryBank && cfg.memoryBank.toLowerCase() !== 'none' && has(cfg.memoryBank)) {
+if (!cfg.memoryBank) {
+  warn('memory-bank', 'no Memory Bank path in the delta — completeness not checked');
+} else if (cfg.memoryBank.toLowerCase() !== 'none' && has(cfg.memoryBank)) {
   const REQUIRED = ['activeContext.md', 'projectbrief.md', 'progress.md'];
   const present = readdirSync(join(ROOT, cfg.memoryBank));
   const gone = REQUIRED.filter((f) => !present.includes(f));

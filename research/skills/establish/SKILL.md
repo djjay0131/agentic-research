@@ -65,9 +65,18 @@ fails the repo if any survive.
 
 **If `docs/governance-delta.md` exists:**
 
-- Do **not** redeclare the memory-bank or roadmap paths. Read them out of the
-  governance delta and use those values everywhere in the research delta, and
-  set `Governance delta present: yes`.
+- **Mirror, do not invent.** Read the memory-bank and roadmap paths out of the
+  governance delta and write *those exact values* into the research delta, each
+  annotated with where it came from:
+
+  ```
+  | Memory Bank | `llm/memory_bank/` (from docs/governance-delta.md — do not change here) |
+  ```
+
+  Set `Governance delta present: yes`. Do not choose a different path, and do
+  not leave the field blank: `research-checks.mjs` can only verify a path that
+  is declared, and an undeclared path is reported as a skipped check, never as
+  a passed one. If the two files ever disagree, the governance delta wins.
 - Print the L0 allowlist lines the paper layout needs and ask the user to add
   them to the governance delta (do not edit that file yourself — changing it is
   L1 semantic work):
@@ -95,6 +104,17 @@ docs/              research-delta.md
 scripts/           build.sh watch.sh wordcount.sh arxiv-package.sh overleaf-sync.sh
                    _paths.sh research-checks.mjs
 ```
+
+The memory bank is created **unconditionally** — it is part of the research
+scaffold and does not come from `agentic-governance`. This plugin has no
+dependency on that one.
+
+**But never clobber a memory bank that already has content.** A repo that
+already adopted `agentic-governance`, or that has simply been worked in, will
+have real project memory at that path. Copy a template file only where no file
+of that name exists; list any you skipped, and say the existing content was
+kept. Losing someone's `activeContext.md` to a scaffolding step is the worst
+thing this skill could do.
 
 Substitute `{{TITLE}}`, `{{AUTHOR}}`, `{{INSTITUTION}}`, `{{CITY}}`,
 `{{COUNTRY}}`, `{{EMAIL}}`, `{{KEYWORDS}}`, `{{PROJECT_NAME}}` in the LaTeX
