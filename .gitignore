@@ -1,0 +1,11 @@
+.fuse_hidden*
+build/
+.DS_Store
+*.aux
+*.log
+*.out
+*.bbl
+*.blg
+*.fls
+*.fdb_latexmk
+*.synctex.gz
