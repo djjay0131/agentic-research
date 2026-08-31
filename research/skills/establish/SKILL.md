@@ -126,11 +126,29 @@ fails the repo if any survive.
   deny <paper>/**
   deny <construction>/design/**
   deny <construction>/requirements/**
+  deny docs/research-delta.md
   ```
+
+  The last line matters and is easy to miss: governance's `HARD_DENY` protects
+  its own `governance-delta.md`, but nothing protects the research delta, and a
+  generic `allow docs/** link-target-only` rule matches it. Without this line an
+  L0 change could edit link targets inside the file that every research agent
+  reads for its paths.
 
   Explain why: paper prose is semantic work, and an L0 fast track that could
   touch the draft would let an agent merge writing without human review.
 - If the governance delta pins a version, note both pins in your final report.
+
+### Step 3a — Governance adopted later
+
+If `docs/governance-delta.md` is **absent**, write `Governance delta present: no`
+— and tell the user, in the final report, that if they adopt `agentic-governance`
+later they must come back and run `/research:audit`, because that field will
+then be stale and the L0 denial lines will never have been printed.
+
+`research-checks.mjs` FAILs on that mismatch, so it is caught rather than
+silently believed — but it is caught after the fact, and saying so up front costs
+one sentence.
 
 ## Step 4 — Scaffold the layout
 

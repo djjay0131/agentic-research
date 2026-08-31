@@ -10,7 +10,7 @@
       "name": "research",
       "source": "./research",
       "description": "Scaffold and run an academic writing project: /research:establish, /research:audit, /research:add-paper, /research:citation-matrix, /research:originality-check, plus 8 writing agents",
-      "version": "1.4.0",
+      "version": "1.5.0",
       "author": { "name": "djjay0131" }
     }
   ]

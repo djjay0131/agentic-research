@@ -69,6 +69,11 @@ Path: {{OWN_BIB}}
 
 Governance delta present: {{HAS_GOVERNANCE}}
 
+<!-- research-checks.mjs reconciles this field against whether
+     docs/governance-delta.md actually exists, and FAILs on a mismatch. If you
+     adopt agentic-governance after this repo was scaffolded, set this to yes
+     and run /research:audit for the L0 allowlist lines. -->
+
 <!-- If yes, docs/governance-delta.md is authoritative for the memory-bank and
      roadmap paths, and this file defers to it rather than redeclaring them.
      Add these lines to that delta's L0 allowlist — paper prose is semantic
@@ -77,6 +82,7 @@ Governance delta present: {{HAS_GOVERNANCE}}
        deny {{PAPER_DIR}}/**
        deny {{CONSTRUCTION_DIR}}/design/**
        deny {{CONSTRUCTION_DIR}}/requirements/**
+       deny docs/research-delta.md
 
 -->
 

@@ -174,6 +174,51 @@ if (!bibPath || !has(bibPath)) {
   }
 }
 
+/* ---------- 4a. Governance claim vs reality ---------- */
+// The delta's "Governance delta present" field is written once by the
+// scaffolder and, until now, read by nothing. It goes stale the moment
+// governance is adopted afterwards - which is exactly what happens when
+// /governance:establish runs second. Give the field an owner.
+if (delta) {
+  const claimed = (() => {
+    const m = delta.match(/^\s*Governance delta present\s*:\s*(\w+)/im);
+    return m ? /^(yes|true)$/i.test(m[1]) : null;
+  })();
+  const actual = has('docs/governance-delta.md');
+
+  if (claimed === null) {
+    warn('governance.sync', 'delta has no "Governance delta present" field — cannot reconcile');
+  } else if (claimed === actual) {
+    pass('governance.sync', actual
+      ? 'declares governance present, and docs/governance-delta.md exists'
+      : 'declares no governance, and none present');
+  } else if (actual && !claimed) {
+    fail('governance.sync',
+      'delta says "Governance delta present: no" but docs/governance-delta.md exists — ' +
+      'governance was adopted after this repo was scaffolded. Set the field to yes, ' +
+      'mirror the memory-bank path from the governance delta, and run /research:audit ' +
+      'to get the L0 allowlist lines that are missing.');
+  } else {
+    fail('governance.sync',
+      'delta says "Governance delta present: yes" but docs/governance-delta.md is missing — ' +
+      'either it was deleted, or the field was set by hand. Every path this delta says it ' +
+      'mirrors from governance is now unsourced.');
+  }
+
+  // Reverse-order repos never got the L0 denials printed, because research ran
+  // before there was a delta to add them to.
+  if (actual) {
+    const gov = read('docs/governance-delta.md') || '';
+    const wantDenies = [`deny ${cfg.paperDir}/**`];
+    if (cfg.construction) wantDenies.push(`deny ${cfg.construction.replace(/\/+$/, '')}/design/**`);
+    wantDenies.push('deny docs/research-delta.md');
+    const absent = wantDenies.filter((d) => !gov.includes(d.replace(/^deny /, '')));
+    absent.length
+      ? warn('governance.l0', `governance L0 allowlist does not mention: ${absent.map((d) => d.replace(/^deny /, '')).join(', ')} — paper prose is semantic work. The allowlist is default-deny so this is explicitness, not an open door; /research:audit prints the exact lines.`)
+      : pass('governance.l0', 'L0 allowlist covers the paper and construction paths');
+  }
+}
+
 /* ---------- 4b. Anonymity (double-blind venues) ---------- */
 if (delta) {
   const anon = (() => {

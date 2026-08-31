@@ -1,5 +1,43 @@
 # Changelog
 
+## 1.5.0 — 2026-08-31
+
+From the reverse-order test (research established first, governance second).
+That order survives — nothing was overwritten, one memory bank, 17/17 still
+green — but it survives by luck rather than design, and it exposed a field with
+no owner.
+
+### `Governance delta present` is now validated
+The scaffolder wrote this field and **nothing ever read it**. Adopt governance
+after scaffolding and it silently becomes false, in a repo that otherwise scores
+17/17. Three separate checkers ran over such a repo and none noticed.
+
+New `governance.sync` check reconciles the claim against reality and FAILs both
+mismatches: the field saying `no` while `docs/governance-delta.md` exists (the
+reverse-order case), and the field saying `yes` when it does not (deleted, or
+hand-edited — every mirrored path is then unsourced).
+
+### The missing L0 denials are now reported
+In reverse order, `research:establish` runs before there is a governance delta to
+print denials into, so they are never printed. New `governance.l0` check warns
+when the governance allowlist does not mention the paper and construction paths.
+It is a warning, not a failure, because `checkL0Paths` is default-deny — the
+absence is missing explicitness, not an open door. `/research:audit` gained a
+reverse-order path that reports the same thing and, with `--fix`, corrects the
+field and mirrors the memory-bank path.
+
+### `deny docs/research-delta.md` added to the printed denials
+Governance's `HARD_DENY` protects its own delta but nothing protected the
+research delta, and a generic `allow docs/** link-target-only` rule matches it —
+so an L0 change could edit link targets inside the file every research agent
+reads for its paths. The denial now ships in the printed lines and the delta
+template. Keeping this line in the research plugin, rather than adding a
+research path to governance's `HARD_DENY`, points the coupling the right way.
+
+### `establish` warns about later adoption
+When no governance delta is present, the final report now says that adopting
+governance later requires a return trip through `/research:audit`.
+
 ## 1.4.0 — 2026-08-31
 
 From the composition test against `agentic-governance`. The composition itself

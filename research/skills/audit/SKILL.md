@@ -67,6 +67,13 @@ delta fields, and regenerate the citation matrix from `references.json`. It may
 
 ## 7. Governance composition
 
+**Reverse-order adoption.** If `docs/governance-delta.md` exists but the research
+delta says `Governance delta present: no`, governance was adopted *after* this
+repo was scaffolded. Nothing printed the L0 denials at the time, and no path was
+ever mirrored. Report it as a FAIL, and with `--fix` set the field to `yes` and
+mirror the governance delta's memory-bank path into the third column. Print the
+denial lines for the user to paste — never edit the governance delta yourself.
+
 If `docs/governance-delta.md` exists:
 
 - Does its L0 allowlist deny `<paper>/**` and `<construction>/**`? If not, this
