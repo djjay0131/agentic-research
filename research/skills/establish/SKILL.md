@@ -26,6 +26,11 @@ replies "already installed" and leaves the old version pinned, and there is no
 `claude plugin update`. Plugins also bind at session start, so a freshly
 installed version is not active until the session restarts.
 
+**State the version you are running, out loud, in your first message and again
+in your final report** — "scaffolding with agentic-research v1.4.0". A stale run
+is otherwise invisible until someone diffs the layout, which is exactly how this
+was missed twice.
+
 At Step 1 you read the plugin `VERSION`. Compare it against what the delta of
 any existing repo pins, and if you have any reason to think the installed copy
 is stale, tell the user to run:
@@ -96,14 +101,23 @@ fails the repo if any survive.
   governance delta and write *those exact values* into the research delta, each
   annotated with where it came from:
 
+  The layout table has a third column for exactly this. Put the value alone in
+  the value cell and the provenance in the **third** column — an annotation
+  inside the value cell becomes part of the path when the delta is parsed:
+
   ```
-  | Memory Bank | `llm/memory_bank/` (from docs/governance-delta.md — do not change here) |
+  | Memory Bank | `llm/memory_bank/` | from docs/governance-delta.md — do not change here |
   ```
 
   Set `Governance delta present: yes`. Do not choose a different path, and do
   not leave the field blank: `research-checks.mjs` can only verify a path that
   is declared, and an undeclared path is reported as a skipped check, never as
   a passed one. If the two files ever disagree, the governance delta wins.
+- **Create the directory if governance only declared it.** `governance:establish`
+  writes a memory-bank *path* into its delta but does not create the directory.
+  If the declared path does not exist on disk, scaffold the memory bank there in
+  Step 4 — a delta pointing at a directory that is not there fails every check
+  that reads it.
 - Print the L0 allowlist lines the paper layout needs and ask the user to add
   them to the governance delta (do not edit that file yourself — changing it is
   L1 semantic work):
@@ -192,6 +206,31 @@ For a **proposal**, rename the section skeleton to the proposal structure
 (problem statement, approach, contributions, feasibility and timeline, impact)
 and keep the word-budget headers.
 
+### Step 4a0 — Anonymise the title block when the venue is double-blind
+
+If Step 2 established that the venue is double-blind, the scaffold must be
+anonymous **from the start**. `research-checks.mjs` FAILs a repo whose delta says
+`Anonymised: yes` while `main.tex` carries author metadata — do not hand the user
+a repo that fails its own check.
+
+- **ACM.** Substitute `{{ANON_OPT}}` with `,anonymous` so the class becomes
+  `\documentclass[sigconf,nonacm,anonymous]{acmart}`, and fill the title block
+  with `\author{Anonymous}`, `\institution{Anonymous Institution}`,
+  `\city{Anonymous}`, `\country{Anonymous}`,
+  `\email{anonymous@example.org}`. When not anonymous, substitute `{{ANON_OPT}}`
+  with an empty string and use the real values.
+- **IEEE.** Replace the whole `\author` block with
+  `\author{\IEEEauthorblockN{Anonymous Author(s)}}`.
+- **Springer.** `\author{Anonymous}` and `\institute{Anonymous Institution}`.
+- **arXiv.** Preprints are not anonymous; keep the real author block.
+
+In every case, record the real author details in the delta or `CLAUDE.md` so the
+user can restore them for the camera-ready, and say in your final report that the
+title block is anonymised and where the real details are kept.
+
+`{{ANON_OPT}}` must never survive into the written file — substitute it either
+way, or the placeholder check fails the repo.
+
 ### Step 4a — Resolve the document class (do not skip this)
 
 A minimal TeX Live has only `article.cls`. `acmart`, `IEEEtran`, and `llncs` are
@@ -250,6 +289,20 @@ node <paper>/scripts/research-checks.mjs --compile
 
 `research-checks.mjs` walks up for `docs/research-delta.md`, so it works from
 the repo root, from inside the paper subtree, or from CI.
+
+### Step 5a — Seed the citation stores
+
+`/research:audit` and `citation-agent` both expect
+`<construction>/requirements/references.json`. Create it now as an empty store so
+the audit reports a real state rather than a missing file the scaffolder was
+responsible for:
+
+```json
+{ "version": 1, "generated": null, "records": [] }
+```
+
+Copy `templates/construction/requirements/citation-matrix.md` alongside it as the
+human-readable mirror.
 
 ## Step 6 — CLAUDE.md
 

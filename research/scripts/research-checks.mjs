@@ -64,7 +64,17 @@ const cfg = { paperDir: 'paper', mainTex: 'main.tex', bib: null, pageLimit: 0, m
 if (!delta) {
   fail('delta', `${DELTA_PATH} is missing. Run /research:establish.`);
 } else {
-  const clean = (s) => s.trim().replace(/^\*\*|\*\*$/g, '').replace(/^[`\[]+|[`\]]+$/g, '').trim();
+  const clean = (s) => s
+    .trim()
+    .replace(/^\*\*|\*\*$/g, '')
+    // A provenance annotation may follow the value in the same cell, e.g.
+    //   `llm/memory_bank/` (from docs/governance-delta.md - do not change here)
+    // Strip it: the value is what precedes the parenthetical.
+    .replace(/\s*\((?:from|source|via|see|per)\b[^)]*\)\s*$/i, '')
+    .replace(/\s*<!--[^>]*-->\s*$/, '')
+    .trim()
+    .replace(/^[`\[]+|[`\]]+$/g, '')
+    .trim();
   const field = (label) => {
     // markdown table row:  | Label | value |
     let m = delta.match(new RegExp(`^\\s*\\|\\s*\\*?\\*?${label}\\*?\\*?\\s*\\|\\s*([^|]+?)\\s*\\|`, 'im'));

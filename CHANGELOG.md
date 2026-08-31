@@ -1,5 +1,48 @@
 # Changelog
 
+## 1.4.0 — 2026-08-31
+
+From the composition test against `agentic-governance`. The composition itself
+passed on every count; these are the faults it exposed.
+
+### The composition instructions broke composition (headline)
+Step 3 told the skill to annotate the mirrored memory-bank path *inside the
+value cell*:
+
+```
+| Memory Bank | `llm/memory_bank/` (from docs/governance-delta.md — do not change here) |
+```
+
+`field()` captures everything up to the next pipe, so the annotation became part
+of the path and the layout check FAILed with "missing on disk". Following the
+instructions literally was what broke it. Fixed at both ends: the instruction now
+puts provenance in the table's third column, and the parser strips a trailing
+`(from …)` / `(source …)` / `(see …)` annotation and HTML comments from any value.
+
+### The scaffolder contradicted its own anonymity check
+v1.2.0 added a check that FAILs when the delta says `Anonymised: yes` and
+`main.tex` carries author metadata — but `establish` never mentioned anonymity and
+the templates hardcoded a full author block. A faithful run for any double-blind
+venue produced a repo that failed its own check. `establish` now has Step 4a0:
+ACM gets `{{ANON_OPT}}` → `,anonymous` plus a scrubbed title block, and IEEE,
+Springer and arXiv each carry the right instruction. Verified: an anonymised
+scaffold builds and passes 17/17.
+
+### A governance-declared memory bank is now created
+`governance:establish` writes a memory-bank *path* into its delta but never
+creates the directory. `research:establish` now scaffolds it at that path when it
+is absent, instead of leaving the delta pointing at nothing.
+
+### `references.json` is seeded
+`/research:audit` and `citation-agent` expect it; nothing created it. `establish`
+now writes an empty store, so the audit reports a real state rather than an
+absence the scaffolder caused.
+
+### The running version is announced
+The upgrade trap fired a second time during testing. `establish` now states its
+version in its first message and its final report, so a stale run is visible
+immediately rather than after someone diffs the layout.
+
 ## 1.3.0 — 2026-08-31
 
 Build output moves back inside the paper subtree: `<paper>/build/`, not a

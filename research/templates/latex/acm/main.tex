@@ -1,10 +1,11 @@
 %% {{PROJECT_NAME}} — ACM sigconf
 %% Build: ../scripts/build.sh   Watch: ../scripts/watch.sh
+%% {{ANON_OPT}} -> ",anonymous" for a double-blind venue, empty otherwise.
 %% acmart.cls and ACM-Reference-Format.bst ARE vendored by this plugin and are
 %% copied into your paper/ dir only when kpsewhich finds no system install.
 %% acmart needs: tlmgr install libertine newtx txfonts inconsolata comment \
 %%               ncctools preprint totpages environ trimspaces textcase
-\documentclass[sigconf,nonacm]{acmart}
+\documentclass[sigconf,nonacm{{ANON_OPT}}]{acmart}
 %% Remove `nonacm` and fill in the rights block when you have the ACM DOI.
 
 \usepackage{booktabs}
