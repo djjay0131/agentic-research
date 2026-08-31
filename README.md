@@ -82,6 +82,7 @@ repo/
 
 | Skill | Does |
 |---|---|
+| `/research:preflight` | Check the machine and install what's missing |
 | `/research:establish` | Scaffold this repo — delta, LaTeX, dirs, scripts, CI |
 | `/research:audit` | How far has this repo drifted? What blocks submission? |
 | `/research:add-paper <doi\|arxiv\|url>` | Add one verified reference |
@@ -138,6 +139,21 @@ deny construction/requirements/**
 
 Paper prose is semantic work (L1–L3). An L0 fast track that could reach the
 draft would let an agent merge writing without human review.
+
+## Before you start
+
+```
+/research:preflight
+```
+
+Checks for `latexmk`, a TeX distribution, the font packages your venue's class
+needs, Node 18+ and `pdfinfo` — then offers to install exactly what is missing,
+one approved command at a time. Run it before `/research:establish` and you will
+not spend your first twenty minutes guessing at package names.
+
+It recommends **BasicTeX (~100 MB)** over full MacTeX (~5 GB) and installs the
+handful of packages that close the gap. Nothing is installed without you saying
+yes to that specific command.
 
 ## Requirements
 

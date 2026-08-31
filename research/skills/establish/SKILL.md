@@ -52,10 +52,12 @@ produces the old layout with no warning, which is worse than failing.
   install: skip to the upgrade path at the end of this file.
 - Check for `docs/governance-delta.md`. If present, this repo also uses
   `agentic-governance` — see Step 3.
-- Check the toolchain and report honestly what is missing:
-  `latexmk`, `pdflatex`, `node` (≥18), `pdfinfo`, and `git`. A missing
-  `latexmk` is not fatal to scaffolding, but say that the build scripts will
-  not run until it is installed.
+- Check the toolchain: `latexmk`, `pdflatex`, `node` (≥18), `pdfinfo`, `git`.
+  If anything is missing, **run the `preflight` skill's detection and offer its
+  installs** rather than just listing gaps — a user who has to go and work out
+  package names will not come back. Only `git` is a hard stop; a missing
+  `latexmk` still lets the scaffold be created correctly, and the build works
+  the moment TeX arrives.
 
 ## Step 2 — Interview
 

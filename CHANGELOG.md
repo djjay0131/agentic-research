@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.6.0 — 2026-08-31
+
+### New: `/research:preflight`
+Detects `latexmk`, a TeX distribution, the packages the chosen venue class
+depends on (acmart's font stack is the usual culprit), Node 18+, `pdfinfo` and
+`git` — then offers to install exactly what is missing, one approved command at
+a time, with the download size stated up front.
+
+It recommends **BasicTeX (~100 MB)** over full MacTeX (~5 GB) plus the specific
+`tlmgr install` lines that close the gap for these templates, rather than
+silently starting a 5 GB download. Only `git` is treated as a hard stop; the
+report distinguishes gaps that block the build from ones that merely disable a
+feature, so nobody installs a TeX distribution to get a page count.
+
+`establish` now runs this detection and offers the installs when the toolchain
+is incomplete, instead of listing gaps and leaving the user to work out package
+names.
+
 ## 1.5.0 — 2026-08-31
 
 From the reverse-order test (research established first, governance second).
