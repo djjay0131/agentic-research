@@ -6,6 +6,7 @@
 set -euo pipefail
 . "$(dirname "${BASH_SOURCE[0]}")/_paths.sh"
 cd "$PAPER_ROOT"
+mkdir -p "$BUILD_DIR"
 
 if grep -q 'documentclass.*acmart' "$MAIN_TEX" 2>/dev/null \
    && ! kpsewhich libertine.sty >/dev/null 2>&1 && [ ! -f acmart.cls ]; then
@@ -20,7 +21,7 @@ MSG
 fi
 
 if [[ "${1:-}" == "--view" ]]; then
-  exec latexmk -pdf -pvc -interaction=nonstopmode -halt-on-error "$MAIN_TEX"
+  exec latexmk -pdf -pvc -outdir="$BUILD_DIR" -interaction=nonstopmode -halt-on-error "$MAIN_TEX"
 else
-  exec latexmk -pdf -pvc -view=none -interaction=nonstopmode -halt-on-error "$MAIN_TEX"
+  exec latexmk -pdf -pvc -view=none -outdir="$BUILD_DIR" -interaction=nonstopmode -halt-on-error "$MAIN_TEX"
 fi

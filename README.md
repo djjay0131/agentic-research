@@ -16,6 +16,26 @@ anyone's template.
 /plugin install research@agentic-research
 ```
 
+Then **restart your Claude Code session** — plugins bind at session start, so
+the skills are not available until you do.
+
+### Upgrading
+
+`claude plugin install` does **not** upgrade an installed plugin. It replies
+"already installed" and leaves the old version pinned, and there is no
+`claude plugin update`. To move to a new version:
+
+```
+/plugin uninstall research@agentic-research
+/plugin marketplace update agentic-research
+/plugin install research@agentic-research
+```
+
+and restart the session. Check what you actually have with `/plugin list`
+against the `VERSION` file in this repo. **This matters:** v1.0.0 scaffolded
+`construction/` and `scripts/` at the repo root; v1.1.0 moved them. Running a
+stale copy silently produces the old layout.
+
 ## Use
 
 ```
@@ -35,8 +55,9 @@ verifies the skeleton compiles. Then:
 
 ## Layout
 
-The paper subtree is self-contained, so it never collides with source code at
-the repo root and can be moved elsewhere intact:
+The paper subtree holds **source only** — `latexmk -outdir` sends the PDF and
+every intermediate to `build/` at the repo root, so nothing is ever written
+beside `main.tex`:
 
 ```
 repo/
@@ -45,8 +66,8 @@ repo/
 │   ├── sections/           # each with a "% WORD BUDGET: N" header
 │   ├── references.bib
 │   ├── figures/
-│   ├── scripts/            # build, watch, wordcount, arxiv, overleaf, checks
-│   └── build/              # the PDF lands here (git-ignored)
+│   └── scripts/            # build, watch, wordcount, arxiv, overleaf, checks
+├── build/paper/            # PDF + every LaTeX intermediate (git-ignored)
 ├── llm/
 │   ├── construction/       # design/ requirements/ sprints/
 │   └── memory_bank/

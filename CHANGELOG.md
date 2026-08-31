@@ -1,5 +1,52 @@
 # Changelog
 
+## 1.2.0 — 2026-08-31
+
+From a real `/research:establish` test run. Six findings, all addressed.
+
+### Build artifacts never touch the paper subtree
+`latexmk` ran *in* `<paper>/` and left `main.aux`, `.log`, `.bbl`, `.fls`,
+`.fdb_latexmk` and `main.pdf` beside the source, then copied only the PDF out.
+The scripts now pass `-outdir`, so the PDF **and** every intermediate land in
+`build/<paper>/` at the repo root and the subtree stays source-only.
+
+This also fixes the backwards `.gitignore`: there is no longer a `main.pdf`
+beside `main.tex` to accidentally commit. One `build/` line covers everything
+derived, for the paper and the code side alike.
+
+### Empty directories now survive a clone
+Git does not track empty directories, so `files/`, `figures/`, `archive/` and
+the construction dirs vanished on first clone and the checker then reported the
+layout as broken. `establish` now writes a `README.md` or `.gitkeep` into every
+directory that would otherwise be empty, and a new `clone-safety` check warns
+about any that remain.
+
+### Double-blind anonymity is now enforced
+A delta saying `Anonymised: yes` alongside a `main.tex` carrying
+`\author`/`\affiliation`/`\email` is a desk reject, and nothing caught it.
+New `anonymity` check: FAILs on identifying metadata when the delta declares a
+double-blind venue, passes when the `anonymous` class option is set and the
+metadata is scrubbed, and warns when the option is set but identifying text
+remains.
+
+### No more duplicate `scripts/`
+Answering "code lives here too" created an empty `scripts/` at the repo root
+beside the paper's own — the exact near-duplication this plugin exists to
+remove. `establish` no longer creates it.
+
+### Upgrade path documented
+`claude plugin install` does not upgrade an installed plugin: it reports
+"already installed" and leaves the old version pinned, and there is no
+`claude plugin update`. Anyone who installed before v1.1.0 was silently still
+scaffolding the pre-`llm/` layout. The README and `establish` now spell out the
+uninstall/update/install sequence, and that plugins bind at session start so a
+restart is required.
+
+### Also
+- One fault, one finding: a fabricated citation no longer produces both a
+  `citations.missing` FAIL and a `citations.matrix` warning.
+- `research-checks.mjs` header comment updated to the `paper/scripts/` path.
+
 ## 1.1.0 — 2026-08-31
 
 Layout change, from testing `/research:establish` on a real repo.

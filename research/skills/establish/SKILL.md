@@ -19,6 +19,26 @@ Announce each step as you do it. Ask before any GitHub-remote mutation
 has already written content into — if a target exists and is non-trivial, show
 the diff and ask.
 
+## Before you begin: are you running the current version?
+
+`claude plugin install` does **not** upgrade an already-installed plugin — it
+replies "already installed" and leaves the old version pinned, and there is no
+`claude plugin update`. Plugins also bind at session start, so a freshly
+installed version is not active until the session restarts.
+
+At Step 1 you read the plugin `VERSION`. Compare it against what the delta of
+any existing repo pins, and if you have any reason to think the installed copy
+is stale, tell the user to run:
+
+```
+/plugin uninstall research@agentic-research
+/plugin marketplace update agentic-research
+/plugin install research@agentic-research
+```
+
+and then **restart the session**. Scaffolding a repo with a stale version
+produces the old layout with no warning, which is worse than failing.
+
 ## Step 1 — Preflight
 
 - Confirm the target is a git repo. If not, offer `git init` (default branch `main`).
@@ -51,8 +71,14 @@ existing `.tex` files, directory names, git remote).
      **(recommended default)**
    - `proposal/` instead of `paper/` when the type is a proposal
    - keep an existing layout you detected, if the repo already has one
-6. **Does code live here too?** If yes, also create `experiments/`, `scripts/`,
-   `data/`, `results/`.
+6. **Does code live here too?** If yes, also create `experiments/`, `data/`,
+   and `results/` at the repo root.
+
+   **Do not create a root `scripts/`.** The paper's scripts live in
+   `<paper>/scripts/`, and an empty second `scripts/` at the root is exactly the
+   kind of near-duplicate this plugin exists to eliminate. If the code side
+   later needs its own scripts, the user creates that directory when they have
+   something to put in it.
 7. **Own bibliography path** — for the self-plagiarism check. Offer to skip.
 
 Derive title, author, institution, and email from git config and the README
@@ -100,8 +126,15 @@ together, lets the subtree be moved or copied to another repo intact, and means
 a repo that also holds source code has no collision between `src/` and the
 paper's own `scripts/` or `build/`.
 
-`files/` is the deliberate exception: it stays at the repo root, because source
-material (a CFP, reference PDFs, notes) is often needed by the code side too.
+Two deliberate exceptions live at the repo root:
+
+- `files/` — source material (a CFP, reference PDFs, notes), because the code
+  side often needs it too.
+- `build/` — everything derived. The scripts pass `latexmk -outdir`, so the PDF
+  *and* every `.aux`, `.log`, `.bbl`, `.fls` and `.fdb_latexmk` land there and
+  **nothing is ever written beside `main.tex`.** One git-ignored directory holds
+  paper output and code build output alike. Never scaffold a `build/` inside the
+  paper subtree.
 
 ```
 <paper>/                  paper/ | proposal/ | writeup/  — self-contained
@@ -111,7 +144,8 @@ material (a CFP, reference PDFs, notes) is often needed by the code side too.
   figures/
   scripts/                build.sh watch.sh wordcount.sh arxiv-package.sh
                           overleaf-sync.sh _paths.sh research-checks.mjs
-  build/                  the PDF lands here — git-ignored
+build/<paper>/            the PDF AND every LaTeX intermediate — repo root,
+                          git-ignored, derived, safe to delete
 llm/
   construction/           design/  requirements/  sprints/  spec_builder.md
   memory_bank/            the 9 memory-bank files, archive/
@@ -120,6 +154,19 @@ docs/
 files/                    shared source material — REPO ROOT, not the subtree
 src/  tests/  data/       untouched if the repo also holds code
 ```
+
+**Every directory you create must survive a clone.** Git does not track empty
+directories, so a scaffold of empty dirs silently disappears the first time
+someone clones the repo — and the checker then reports the layout as broken.
+Into every directory you create that would otherwise be empty, write either:
+
+- a short `README.md` saying what belongs there — preferred for `files/`,
+  `<construction>/design/`, `<construction>/sprints/`, and `results/`; or
+- an empty `.gitkeep` — for `<paper>/figures/`, `<memory-bank>/archive/`, and
+  anything else with no useful thing to say.
+
+Do not skip this for `build/`: that one is git-ignored by design and must
+**not** get a `.gitkeep`.
 
 **Defaults, unless the user chose otherwise in Step 2:** `<construction>` is
 `llm/construction/` and `<memory-bank>` is `llm/memory_bank/` — both under
@@ -212,9 +259,13 @@ do not overwrite it — show the user the sections to merge in.
 
 ## Step 7 — Git and CI
 
-- Append to `.gitignore`: `<paper>/build/`, and the LaTeX intermediates
-  (`*.aux *.log *.out *.bbl *.blg *.fls *.fdb_latexmk *.synctex.gz *.toc`).
+- Append to `.gitignore`: `build/`. That one line covers everything derived,
+  because `-outdir` keeps intermediates out of the source tree. Add the LaTeX
+  intermediate patterns too, as a backstop for anyone who runs `pdflatex` by
+  hand: `*.aux *.log *.out *.bbl *.blg *.fls *.fdb_latexmk *.synctex.gz *.toc`.
   **Do not** ignore `*.pdf` blindly — some venues want the PDF committed; ask.
+  With `-outdir` there is no PDF beside `main.tex` to ignore in the first place:
+  the only PDF is the derived one under `build/`.
 - Copy `templates/github/pr-review.yml` → `.github/workflows/` and adjust it to
   run `node scripts/research-checks.mjs --compile`.
 - Ask before creating a remote or pushing.
@@ -269,6 +320,11 @@ git mv scripts <paper>/scripts
 git mv figures <paper>/figures
 mkdir -p llm && git mv construction llm/construction
 ```
+
+If the repo has a `<paper>/build/` from v1.1, delete it (it is derived) and let
+the new scripts recreate `build/<paper>/` at the root. Also delete any
+`.aux`/`.log`/`.bbl`/`.fls`/`.fdb_latexmk` sitting beside `main.tex` — with
+`-outdir` they will not come back.
 
 Then update `docs/research-delta.md` to the new paths, replace
 `<paper>/scripts/_paths.sh` with the current template, fix `\graphicspath` in

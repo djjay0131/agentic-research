@@ -10,7 +10,8 @@ STEM="${MAIN_TEX%.tex}"
 rm -rf "$OUT" && mkdir -p "$OUT"
 cd "$PAPER_ROOT"
 
-latexmk -pdf -interaction=nonstopmode -halt-on-error "$MAIN_TEX"
+mkdir -p "$BUILD_DIR"
+latexmk -pdf -outdir="$BUILD_DIR" -interaction=nonstopmode -halt-on-error "$MAIN_TEX"
 
 if command -v latexpand >/dev/null 2>&1; then
   latexpand --empty-comments "$MAIN_TEX" > "$OUT/$MAIN_TEX"
@@ -20,7 +21,7 @@ else
   [ -d sections ] && mkdir -p "$OUT/sections" && cp sections/*.tex "$OUT/sections/"
 fi
 
-cp "$STEM.bbl" "$OUT/" 2>/dev/null || echo "WARNING: no $STEM.bbl — arXiv will not resolve citations."
+cp "$BUILD_DIR/$STEM.bbl" "$OUT/" 2>/dev/null || echo "WARNING: no $STEM.bbl — arXiv will not resolve citations."
 for f in *.cls *.bst *.sty; do [ -e "$f" ] && cp "$f" "$OUT/"; done 2>/dev/null || true
 [ -d "$FIGURES_DIR" ] && cp -R "$FIGURES_DIR" "$OUT/figures" 2>/dev/null || true
 

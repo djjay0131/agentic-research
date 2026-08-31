@@ -2,11 +2,14 @@
 /**
  * research-checks.mjs — mechanical verification for an agentic-research repo.
  *
- * Dependency-free. Node 18+. Run from the repo root:
+ * Dependency-free. Node 18+.
  *
- *   node scripts/research-checks.mjs            # all non-compiling checks
- *   node scripts/research-checks.mjs --compile  # also build the PDF
- *   node scripts/research-checks.mjs --json     # machine-readable
+ *   node paper/scripts/research-checks.mjs            # all non-compiling checks
+ *   node paper/scripts/research-checks.mjs --compile  # also build the PDF
+ *   node paper/scripts/research-checks.mjs --json     # machine-readable
+ *
+ * Runs from the repo root, from inside the paper subtree, or from CI: it walks
+ * up for docs/research-delta.md.
  *
  * Exit codes: 0 = all pass, 1 = at least one FAIL, 2 = bad invocation.
  * WARN never fails the build; FAIL always does.
@@ -152,11 +155,66 @@ if (!bibPath || !has(bibPath)) {
   if (!mxPath) warn('citations.matrix', 'no citation-matrix.md found');
   else {
     const mx = read(mxPath) || '';
-    const unlisted = [...cited].filter((k) => !mx.includes(k));
+    // Keys already reported as MISSING are not re-reported here at a lower
+    // severity — one fault, one finding.
+    const unlisted = [...cited].filter((k) => !mx.includes(k) && !missing.includes(k));
     unlisted.length
       ? warn('citations.matrix', `${unlisted.length} cited key(s) absent from ${mxPath}: ${unlisted.slice(0, 10).join(', ')}${unlisted.length > 10 ? ' …' : ''} — run /research:citation-matrix`)
       : pass('citations.matrix', `matrix covers all ${cited.size} cited keys`);
   }
+}
+
+/* ---------- 4b. Anonymity (double-blind venues) ---------- */
+if (delta) {
+  const anon = (() => {
+    const m = delta.match(/^\s*\|?\s*\*?\*?Anonymised\*?\*?\s*[|:]\s*([^|\n]+)/im);
+    return m ? /^(yes|true)\b/i.test(m[1].trim()) : false;
+  })();
+  if (!anon) {
+    pass('anonymity', 'venue not declared double-blind');
+  } else {
+    const main = read(`${cfg.paperDir}/${cfg.mainTex}`) || '';
+    const body = main.split('\n').map((l) => l.replace(/(^|[^\\])%.*$/, '$1')).join('\n');
+    const classAnon = /\\documentclass\[[^\]]*\banonymous\b[^\]]*\]/.test(body);
+    const ids = [];
+    for (const cmd of ['author', 'affiliation', 'email', 'institution']) {
+      for (const m of body.matchAll(new RegExp(`\\\\${cmd}\\s*(?:\\[[^\\]]*\\])?\\s*\\{([^}]*)\\}`, 'g'))) {
+        const v = m[1].trim();
+        if (v && !/anonym|omitted|blinded|redacted/i.test(v)) ids.push(`\\${cmd}{${v.slice(0, 40)}}`);
+      }
+    }
+    if (classAnon && !ids.length) pass('anonymity', 'anonymous class option set, no identifying metadata');
+    else if (classAnon) warn('anonymity', `anonymous class option is set, but identifying text remains: ${ids.slice(0, 3).join(', ')} — verify it is suppressed in the PDF`);
+    else if (ids.length) fail('anonymity', `delta says Anonymised: yes, but ${cfg.mainTex} carries identifying metadata: ${ids.slice(0, 3).join(', ')}${ids.length > 3 ? ` (+${ids.length - 3})` : ''} — a double-blind submission with author details is a desk reject`);
+    else pass('anonymity', 'no identifying metadata found');
+  }
+}
+
+/* ---------- 4c. Empty directories survive a clone ---------- */
+{
+  const NEED = [cfg.paperDir && `${cfg.paperDir}/figures`, 'files',
+                cfg.memoryBank && `${cfg.memoryBank}/archive`,
+                cfg.construction && `${cfg.construction}/design`,
+                cfg.construction && `${cfg.construction}/sprints`].filter(Boolean);
+  const ghosts = NEED.filter((d) => existsSync(join(ROOT, d)) && readdirSync(join(ROOT, d)).length === 0);
+  ghosts.length
+    ? warn('clone-safety', `empty and will vanish on clone — add a .gitkeep: ${ghosts.join(', ')}`)
+    : pass('clone-safety', 'no empty directories that a clone would drop');
+}
+
+/* ---------- 5b. Paper subtree is source-only ---------- */
+{
+  const LITTER = ['.aux','.log','.out','.bbl','.blg','.fls','.fdb_latexmk','.synctex.gz','.toc','.pdf'];
+  const found = [];
+  const abs = join(ROOT, cfg.paperDir);
+  if (existsSync(abs)) {
+    for (const e of readdirSync(abs)) {
+      if (LITTER.some((x) => e.endsWith(x))) found.push(e);
+    }
+  }
+  found.length
+    ? warn('paper.clean', `build artifacts beside your source in ${cfg.paperDir}/: ${found.join(', ')} — these predate the -outdir build; safe to delete`)
+    : pass('paper.clean', `${cfg.paperDir}/ holds source only`);
 }
 
 /* ---------- 6. Memory bank completeness ---------- */
@@ -173,16 +231,21 @@ if (!cfg.memoryBank) {
 /* ---------- 7. Compile + page limit ---------- */
 if (WANT_COMPILE) {
   const stem = cfg.mainTex.replace(/\.tex$/, '');
+  // Derived output goes to the repo-root build dir, never beside main.tex.
+  const buildDir = (cfg.buildDir && cfg.buildDir.toLowerCase() !== 'none')
+    ? cfg.buildDir.replace(/\/+$/, '')
+    : `build/${cfg.paperDir.split('/').pop()}`;
+  const absBuild = join(ROOT, buildDir);
   try {
-    execSync(`latexmk -pdf -interaction=nonstopmode -halt-on-error ${cfg.mainTex}`,
-      { cwd: join(ROOT, cfg.paperDir), stdio: 'pipe' });
-    pass('compile', 'latexmk succeeded');
-    const log = read(`${cfg.paperDir}/${stem}.log`) || '';
+    execSync(`mkdir -p ${JSON.stringify(absBuild)} && latexmk -pdf -outdir=${JSON.stringify(absBuild)} -interaction=nonstopmode -halt-on-error ${cfg.mainTex}`,
+      { cwd: join(ROOT, cfg.paperDir), stdio: 'pipe', shell: '/bin/bash' });
+    pass('compile', `latexmk succeeded (output in ${buildDir}/)`);
+    const log = read(`${buildDir}/${stem}.log`) || '';
     const undef = (log.match(/LaTeX Warning: (Reference|Citation) `[^']+' on page \d+ undefined/g) || []).length;
     undef ? fail('compile.refs', `${undef} undefined reference/citation warning(s)`)
           : pass('compile.refs', 'no undefined references');
     try {
-      const info = execSync(`pdfinfo ${stem}.pdf`, { cwd: join(ROOT, cfg.paperDir) }).toString();
+      const info = execSync(`pdfinfo ${stem}.pdf`, { cwd: absBuild }).toString();
       const pages = parseInt((info.match(/^Pages:\s*(\d+)/m) || [])[1], 10);
       if (!Number.isNaN(pages)) {
         if (cfg.pageLimit > 0 && pages > cfg.pageLimit) fail('page-limit', `${pages} pages > limit ${cfg.pageLimit}`);
