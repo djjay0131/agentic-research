@@ -2,6 +2,18 @@
 
 {{PROJECT_DESCRIPTION}}
 
+## What this paper argues
+
+**About:** {{ABOUT}}
+
+**Core claim / contribution:** {{CONTRIBUTION}}
+
+**State:** {{WORK_STATE}} · **Audience:** {{AUDIENCE}}
+
+Read `{{MEMORY_BANK_DIR}}/projectbrief.md` for the full version. If the fields
+above are empty, run `/research:audit` — every agent works from this, and an
+empty brief produces confident, off-target output.
+
 ## How this repo is organised
 
 This repo uses the [`agentic-research`](https://github.com/djjay0131/agentic-research)

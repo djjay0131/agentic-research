@@ -17,6 +17,24 @@ Type: {{PAPER_TYPE}}
 <!-- Determines which agent leads: paper-agent, proposal-agent, or
      position-paper-agent. A repo may hold more than one; name the primary. -->
 
+## The Research
+
+<!-- Captured by /research:establish Step 2a and mirrored into the memory bank.
+     If a field says "not captured", fill it in and run /research:audit. -->
+
+**About:** {{ABOUT}}
+
+**Core claim / contribution:** {{CONTRIBUTION}}
+
+**State of the work:** {{WORK_STATE}}
+<!-- idea | results in hand | revision | resubmission -->
+
+**Audience:** {{AUDIENCE}}
+
+**Co-authors:** {{COAUTHORS}}
+
+**Builds on:** {{BUILDS_ON}}
+
 ## Layout Paths
 
 The paper subtree is fully self-contained: document, sections, figures, scripts
@@ -49,6 +67,7 @@ because the code side may draw on it too.
 |---|---|
 | Venue | {{VENUE}} |
 | Template | {{LATEX_TEMPLATE}} |
+| Template files | {{TEMPLATE_FILES}} |
 | Page Limit | {{PAGE_LIMIT}} |
 | Page Limit Counts | {{PAGE_LIMIT_SCOPE}} |
 | Submission Deadline | {{DEADLINE}} |
@@ -56,6 +75,10 @@ because the code side may draw on it too.
 | Anonymised | {{ANONYMOUS}} |
 
 <!-- Page Limit Counts: "body only" | "including references" | "including appendix" -->
+<!-- Template: acmart | IEEEtran | llncs | article | a custom class name.
+     Mark it "article (PLACEHOLDER — awaiting <venue> class file)" if the real
+     template has not arrived yet; /research:audit reports that every run.
+     Template files: where the custom .cls/.sty/.bst live, or "bundled". -->
 <!-- Page Limit: an integer, or 0 for no limit. research-checks reads this. -->
 
 ## Own Bibliography

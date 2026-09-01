@@ -1,7 +1,7 @@
 {
   "name": "research",
   "description": "Academic writing projects as installable tooling: paper, proposal, and position-paper agents, verified citation matrices, originality review, and one-command repo scaffolding. Composes with agentic-governance.",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "author": { "name": "djjay0131", "email": "djjay@vt.edu" },
   "repository": "https://github.com/djjay0131/agentic-research",
   "keywords": ["paper", "proposal", "latex", "citations", "bibtex", "academic", "research", "originality"]

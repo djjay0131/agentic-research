@@ -33,6 +33,19 @@ script is missing or older than the plugin's copy, say so (`--fix` refreshes it)
   possibly fabricated references and belong at the top of the report
 - Matrix mirror is in sync with the JSON
 
+## 3b. Is the paper actually described?
+
+- Does the delta's **The Research** section still say `{{ABOUT}}` or
+  "not captured"? Report it — an agent working from an empty brief will
+  confidently produce off-target work, and nothing else in this audit catches it.
+- Does `<memory-bank>/projectbrief.md` describe the research, or is it still the
+  template? Same finding.
+- Does the **Template** field contain `PLACEHOLDER`? Then the repo is building
+  with a stand-in class and the venue's real template never arrived. Report it as
+  a FAIL if a deadline is within 30 days, otherwise a warning, and say what to
+  do: drop the class file into `<paper>/`, update `\documentclass` and the
+  Template field, rebuild.
+
 ## 4. Deadline and budget
 
 If the delta declares a deadline, report days remaining. Report current page

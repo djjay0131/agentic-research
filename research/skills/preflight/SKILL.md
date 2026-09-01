@@ -22,6 +22,10 @@ uname -s                                  # Darwin | Linux
 command -v latexmk pdflatex node pdfinfo git
 node --version 2>/dev/null
 kpsewhich <class>.cls 2>/dev/null         # acmart | IEEEtran | llncs | article
+                                          # a custom class shipped by a grant
+                                          # programme lives in <paper>/, not the
+                                          # TeX tree — check there before
+                                          # reporting it missing
 ```
 
 For the venue's class, also check the packages it pulls in. `acmart` is the one

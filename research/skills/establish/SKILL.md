@@ -64,12 +64,56 @@ produces the old layout with no warning, which is worse than failing.
 Use `AskUserQuestion`. Ask only what you cannot derive from the repo (README,
 existing `.tex` files, directory names, git remote).
 
+### Step 2a — What is this research about? (do this FIRST)
+
+**Ask about the work before asking about the paperwork.** Venue and page limit
+are logistics; they tell an agent nothing about what it is helping to write. A
+`paper-agent` that does not know the research question cannot outline, cannot
+judge whether a citation supports a claim, and cannot tell you a section has
+drifted off-thesis. This is also what `projectbrief.md`, `productContext.md` and
+`CLAUDE.md` are seeded from — Step 8 cannot fill them from a venue name.
+
+**First, look before you ask.** If `files/` already holds a CFP, an abstract, a
+prior draft or a proposal, read it and *propose* a summary for confirmation
+rather than interrogating someone who has already written this down. Offer:
+"point me at a file and I'll read it" as an alternative to answering.
+
+Otherwise ask, in the user's own words and briefly:
+
+1. **What is this about?** Two or three sentences. Plain language, not the
+   abstract — this is what an agent reads to orient itself.
+2. **What is the core claim or contribution?** The one thing this paper argues
+   or delivers that was not there before. For a proposal: what you are asking
+   to be funded to do, and why it is worth funding.
+3. **What state is the work in?** One of: an idea with nothing written; results
+   in hand needing a write-up; a revision of something rejected or reviewed; a
+   resubmission to a different venue. This changes what every agent should do
+   first, and it is the question people most expect to be asked.
+4. **Who is the audience** beyond the venue's name — which community, and what
+   do they already believe that this has to move?
+5. **Co-authors**, if any, and who owns which sections.
+6. **What it builds on** — your own prior papers, or the two or three works this
+   is positioned against. Feeds `citation-agent` and the self-plagiarism check.
+
+Keep it to one `AskUserQuestion` round where you can, and accept "skip" on any
+of them — a user in a hurry should not be blocked. Record what you get; record
+explicitly that the rest is unknown, rather than inventing plausible-sounding
+research goals. **Never write a project brief you were not told.**
+
+### Step 2b — The paperwork
+
 1. **Paper type** — research paper / proposal or CFP response / position or
    vision paper / arXiv preprint. This picks the lead agent and the section
    skeleton.
 2. **Venue and template** — ACM (`acmart`), IEEE (`IEEEtran`), Springer
-   (`llncs`), or plain arXiv (`article`). Offer the one matching the paper
-   type as the default.
+   (`llncs`), plain arXiv (`article`), or **custom / bring your own**. Offer the
+   one matching the paper type as the default, and offer *custom* explicitly —
+   do not bury it. Grant and fellowship programmes (NSF, DOE, NIH, internal
+   university templates) almost always ship their own class or a sample
+   document, and a proposal writer is more likely to need this than any of the
+   four named options.
+
+   If they choose custom, see Step 4a-custom.
 3. **Page limit and what it counts** — body only, including references, or
    including appendix. Store the integer; `research-checks.mjs` enforces it.
 4. **Deadline** — a date, or "none".
@@ -279,6 +323,41 @@ title block is anonymised and where the real details are kept.
 `{{ANON_OPT}}` must never survive into the written file — substitute it either
 way, or the placeholder check fails the repo.
 
+### Step 4a-custom — Bring your own template
+
+When the venue ships its own class or sample document, that file is the truth
+and this plugin's templates are irrelevant. Ask which they have:
+
+**(a) They have the template files.** Ask for the path — a `.cls`, a directory,
+or a zip. Copy everything (`.cls`, `.sty`, `.bst`, logos, `.clo`) into
+`<paper>/`. If it came as a **sample document** with its own `main.tex`, use
+*that* as the starting point rather than generating one: it already carries the
+programme's required section headings, margins and boilerplate, and rewriting it
+from a generic skeleton throws away the thing they need most. Keep their section
+order; add the `% WORD BUDGET:` headers to it rather than replacing it.
+
+**(b) They have a class file but no sample.** Copy it in and generate a minimal
+`main.tex`: `\documentclass{<name>}`, the bibliography wiring, and `\input`
+lines for the standard sections. Say plainly that you are guessing at the
+preamble and that they should compare against the programme's instructions.
+
+**(c) They do not have it to hand yet.** Do **not** fail, and do not silently
+substitute a different venue's format. Scaffold with the arXiv/`article`
+template so the repo compiles today, and record in the delta:
+
+```
+| Template | article (PLACEHOLDER — awaiting <venue> class file) |
+```
+
+Tell them exactly what to do when the file arrives: drop it in `<paper>/`,
+update the `\documentclass` line and the Template field, rebuild.
+`/research:audit` reports a `PLACEHOLDER` template every run, so it cannot be
+quietly forgotten.
+
+In all three cases record the real template name in the delta, and note in the
+final report which of (a), (b) or (c) happened. Then continue to Step 4a for the
+class-availability check.
+
 ### Step 4a — Resolve the document class (do not skip this)
 
 A minimal TeX Live has only `article.cls`. `acmart`, `IEEEtran`, and `llncs` are
@@ -373,9 +452,19 @@ do not overwrite it — show the user the sections to merge in.
 
 ## Step 8 — Seed the memory bank
 
-Fill `<memory-bank>/projectbrief.md` and `activeContext.md` with what the
-interview established: the paper's goal, venue, deadline, and the immediate
-next action. Leave the rest as templates.
+Fill these from **Step 2a**, in the user's own words wherever possible:
+
+- `projectbrief.md` — what the research is about, the core claim or
+  contribution, what it builds on. This is the file every agent reads first.
+- `productContext.md` — the audience and what it currently believes.
+- `activeContext.md` — the state of the work (idea / results in hand / revision
+  / resubmission), the deadline, and the immediate next action implied by that
+  state. A revision's next action is not the same as a blank page's.
+- `progress.md` — co-authors and section ownership, if given.
+
+Where Step 2a was skipped, write `Not yet captured — run /research:audit after
+filling this in` rather than inventing content. A fabricated project brief is
+worse than an empty one: every agent downstream will treat it as fact.
 
 ## Step 9 — Verify, then report
 

@@ -1,5 +1,45 @@
 # Changelog
 
+## 1.8.0 — 2026-08-31
+
+Both changes from a collaborator's first run — a grant writer, not the author.
+
+### `establish` now asks what the research is about
+The interview collected venue, page limit, deadline and layout, and **never
+asked what the paper was about**. Step 8 then said to seed `projectbrief.md`
+"with what the interview established: the paper's goal" — a goal the interview
+never collected. The same doc-promises-what-the-step-does-not-deliver pattern as
+the last three findings.
+
+New Step 2a, asked **before** the paperwork: what this is about in plain
+language, the core claim or contribution, the state of the work (idea / results
+in hand / revision / resubmission), the audience, co-authors, and what it builds
+on. It reads a CFP or abstract already sitting in `files/` and proposes a summary
+rather than interrogating someone who has written this down once already, and
+every question can be skipped.
+
+That material now seeds `projectbrief.md`, `productContext.md`, `activeContext.md`
+and the top of `CLAUDE.md`, and is recorded in a new **The Research** section of
+the delta. Where a question was skipped, the field says so — `establish` is
+explicitly forbidden from inventing a project brief, because every agent
+downstream treats it as fact.
+
+`/research:audit` reports a delta or memory bank still holding template text.
+
+### Custom and bring-your-own templates
+The template question offered ACM, IEEE, Springer and arXiv only. Grant and
+fellowship programmes almost always ship their own class or sample document, so
+a proposal writer — the likeliest user of the proposal path — had no option that
+fit, and the run ended without a compiling PDF.
+
+New Step 4a-custom handles three cases: they have the template files (copy them
+in, and if it came as a **sample document**, build on that rather than
+generating a skeleton over the top of the programme's required headings); they
+have a class but no sample (generate a minimal preamble and say it is a guess);
+or the file has not arrived yet (scaffold with `article` so the repo compiles
+today, and record `PLACEHOLDER` in the delta so `/research:audit` reports it
+every run rather than letting it be forgotten).
+
 ## 1.7.0 — 2026-08-31
 
 ### `src/` and `tests/` are created for a code-bearing repo
