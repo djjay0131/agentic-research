@@ -43,6 +43,10 @@ cd my-new-paper
 /research:establish
 ```
 
+**New to this?** [`docs/trial-guide.md`](docs/trial-guide.md) is a 20-minute
+self-guided trial written for someone seeing the plugin for the first time —
+hand it to a colleague as-is.
+
 It interviews you (paper type, venue, page limit, deadline), writes
 `docs/research-delta.md`, scaffolds the layout, installs the build scripts, and
 verifies the skeleton compiles. Then:
