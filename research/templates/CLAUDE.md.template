@@ -29,6 +29,8 @@ root, shared with the code side.
 | `{{CONSTRUCTION_DIR}}/sprints/` | Sprint plans and status |
 | `{{MEMORY_BANK_DIR}}/` | Living project memory — read `activeContext.md` first |
 | `files/` | Source material: the CFP, papers, notes. **Repo root, shared.** |
+| `src/` `tests/` | The implementation and its tests, if this repo holds code |
+| `experiments/` `data/` `results/` | Experiment scripts, their inputs, and the outputs the paper cites |
 
 
 ## Submission

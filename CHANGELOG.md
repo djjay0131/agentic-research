@@ -1,5 +1,30 @@
 # Changelog
 
+## 1.7.0 — 2026-08-31
+
+### `src/` and `tests/` are created for a code-bearing repo
+Answering "code lives here too" created `experiments/`, `data/` and `results/`
+but **not** `src/` or `tests/` — while this skill's own layout diagram listed
+`src/ tests/ data/`. The diagram promised what the step did not deliver, and
+`src/`/`tests/` are the two directories every other tool expects at the root.
+
+All five are now created, each with a one-line `README.md` so it survives a
+clone, and an existing directory is never touched — only gaps are filled, and
+the report says which were created and which were left alone.
+
+### The `.gitkeep` divergence from `agentic-governance` is documented
+`governance:establish` creates only the directories its delta declares and
+explicitly refuses `.gitkeep`, on the grounds that an empty directory misstates
+the repo's shape. That is right for governance, which asserts a declared
+structure — and wrong here, where the scaffold creates directories the *writer*
+fills later (`figures/`, `archive/`, `sprints/`). If those vanish on first clone,
+the layout the delta declares stops being true for whoever cloned it.
+
+The two rules now coexist deliberately, with the reasoning written down in
+`establish` rather than left to be rediscovered as a bug. Where there is
+something useful to say, a `README.md` is preferred over a bare `.gitkeep`: same
+guarantee, and it states the shape instead of merely pinning it.
+
 ## 1.6.0 — 2026-08-31
 
 ### New: `/research:preflight`

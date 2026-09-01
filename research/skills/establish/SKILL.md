@@ -78,8 +78,24 @@ existing `.tex` files, directory names, git remote).
      **(recommended default)**
    - `proposal/` instead of `paper/` when the type is a proposal
    - keep an existing layout you detected, if the repo already has one
-6. **Does code live here too?** If yes, also create `experiments/`, `data/`,
-   and `results/` at the repo root.
+6. **Does code live here too?** If yes, create at the repo root:
+
+   | Directory | For |
+   |---|---|
+   | `src/` | the implementation |
+   | `tests/` | its tests |
+   | `experiments/` | experiment scripts and configs |
+   | `data/` | inputs the experiments read |
+   | `results/` | outputs the paper cites |
+
+   **Never overwrite or touch one that already exists** — an existing `src/` or
+   `tests/` belongs to the user, and this step only fills gaps. Report which you
+   created and which you left alone.
+
+   Each new directory gets a one-line `README.md` saying what belongs in it, so
+   it survives a clone (see the clone-safety rule in Step 4). `src/` and
+   `tests/` are the two people miss most when they are absent, because every
+   other tool expects them at the root.
 
    **Do not create a root `scripts/`.** The paper's scripts live in
    `<paper>/scripts/`, and an empty second `scripts/` at the root is exactly the
@@ -186,7 +202,9 @@ llm/
 docs/
   research-delta.md
 files/                    shared source material — REPO ROOT, not the subtree
-src/  tests/  data/       untouched if the repo also holds code
+src/  tests/              created when code lives here too (Step 2.6), along
+experiments/  data/       with experiments/, data/ and results/ — existing ones
+results/                  are never touched
 ```
 
 **Every directory you create must survive a clone.** Git does not track empty
@@ -201,6 +219,16 @@ Into every directory you create that would otherwise be empty, write either:
 
 Do not skip this for `build/`: that one is git-ignored by design and must
 **not** get a `.gitkeep`.
+
+**This differs from `agentic-governance` on purpose.** Its `establish` creates
+only the directories its delta declares and explicitly refuses `.gitkeep`, on
+the grounds that an empty directory misstates the repo's shape. That is right
+for governance, which asserts a declared structure. It is wrong here: a paper
+scaffold creates directories the *writer* will fill later — `figures/`,
+`archive/`, `sprints/` — and if they vanish on the first clone, the layout the
+delta declares is no longer true for whoever cloned it. Where possible prefer a
+`README.md` saying what belongs there over a bare `.gitkeep`; it carries the
+same guarantee and states the shape rather than merely pinning it.
 
 **Defaults, unless the user chose otherwise in Step 2:** `<construction>` is
 `llm/construction/` and `<memory-bank>` is `llm/memory_bank/` — both under
