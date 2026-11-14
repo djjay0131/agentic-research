@@ -47,7 +47,7 @@ Use this agent for:
 2. **Arguments** → Build supporting arguments and anticipate counterarguments
 3. **Evidence** → Gather supporting evidence (empirical, logical, from literature)
 4. **Draft** → Write with strong rhetorical structure
-5. **Stress Test** → Challenge the thesis with counterarguments
+5. **Stress Test** → Challenge the thesis with counterarguments; run `/research:peer-review` for independent, advisory substance review
 6. **Revise** → Strengthen weak arguments, address gaps
 
 ## Commands
@@ -110,3 +110,5 @@ Adapt based on venue and paper type:
 - Delegates to **latex-agent** for all compilation and formatting
 - Coordinates with **memory-agent** for progress tracking
 - Triggers **review-agent** for quality gates before submission
+- Runs `/research:peer-review` for independent, advisory substance review;
+  peer reviews do not replace `review-agent`

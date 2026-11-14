@@ -92,6 +92,7 @@ repo/
 | `/research:add-paper <doi\|arxiv\|url>` | Add one verified reference |
 | `/research:citation-matrix` | Verify every citation against Crossref / arXiv / OpenAlex |
 | `/research:originality-check` | Overlap, self-plagiarism, unverified claims |
+| `/research:peer-review` | Independent methods, venue and reader reviews plus a meta-review (advisory) |
 
 ### Agents
 
@@ -104,7 +105,25 @@ repo/
 | `citation-agent` | Owns the citation matrix; verifies references are real |
 | `originality-agent` | Drafting-hygiene review before you submit |
 | `review-agent` | The merge gate |
+| `methods-reviewer` | Peer review: is the method sound? |
+| `venue-reviewer` | Peer review: is it new, and does it fit the venue? |
+| `reader-reviewer` | Peer review: does it land for a reader? |
 | `memory-agent` | Keeps the memory bank current |
+
+### Peer review
+
+`/research:peer-review` runs three independent reviewers — methods, venue, and
+reader — each in a fresh context, then writes a meta-review that only aggregates
+them. Reviews are **advisory**: `review-agent` remains the merge gate, and a
+human decides what to act on. Methods reviews reference the
+[ACM SIGSOFT Empirical Standards](https://github.com/acmsigsoft/EmpiricalStandards)
+rather than vendoring the text. Review records live under
+`<construction>/reviews/`, never in the paper tree.
+
+The `peer-review` check validates **structure and independence markers only** —
+required frontmatter and sections, unique reviewer sessions, no cross-references,
+matching `paper_commit`, meta-review coverage, and whether the latest review is
+of an older paper tree. It cannot judge review quality.
 
 ### Scripts, installed into your repo
 

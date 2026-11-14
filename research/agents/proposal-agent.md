@@ -47,7 +47,7 @@ Use this agent for:
 3. **Review** → Validate design against CFP requirements and topic alignment
 4. **Sprint** → Break approved designs into sprint tasks in `<construction>/sprints/`
 5. **Execute** → Write proposal content following the approved design
-6. **Validate** → Check output against submission requirements
+6. **Validate** → Check output against submission requirements; run `/research:peer-review` for independent, advisory review
 
 ## Commands
 
@@ -107,3 +107,5 @@ Adapt based on the specific CFP requirements:
 - Delegates to **latex-agent** for all compilation and formatting
 - Coordinates with **memory-agent** for progress tracking
 - Triggers **review-agent** for quality gates before submission
+- Runs `/research:peer-review` for independent, advisory review, using the
+  programme's merit criteria; peer reviews do not replace `review-agent`

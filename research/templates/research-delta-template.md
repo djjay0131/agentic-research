@@ -81,6 +81,26 @@ because the code side may draw on it too.
      Template files: where the custom .cls/.sty/.bst live, or "bundled". -->
 <!-- Page Limit: an integer, or 0 for no limit. research-checks reads this. -->
 
+## Peer Review
+
+<!-- Used by /research:peer-review. Standards are referenced, not vendored:
+     https://github.com/acmsigsoft/EmpiricalStandards. Write "none" for a field
+     that does not apply. For a proposal, name the programme's merit criteria
+     under Score Scale. -->
+
+| Field | Value |
+|---|---|
+| Empirical Standard(s) | none |
+| Venue Call | none |
+| Review Form | none |
+| Score Scale | accept-to-reject (generic) |
+
+**House Style**
+
+<!-- One rule per bullet. Empty by default: ship no house-style rules unless
+     the author asks for them. Typical entries are project preferences, not
+     universal rules: "no em-dashes", "vary sentence length". -->
+
 ## Own Bibliography
 
 Path: {{OWN_BIB}}

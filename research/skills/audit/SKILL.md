@@ -46,6 +46,24 @@ script is missing or older than the plugin's copy, say so (`--fix` refreshes it)
   do: drop the class file into `<paper>/`, update `\documentclass` and the
   Template field, rebuild.
 
+## 3c. Peer review
+
+- Does the delta have a `## Peer Review` section? If not, report it — the
+  `peer-review` check warns, and `/research:peer-review` will have to infer a
+  standard and use a generic score scale. `--fix` may append the template
+  section with its default `none` values; it may **not** invent a standard,
+  venue call, review form, score scale, or house style.
+- List `<construction>/reviews/` and report the latest set's date and stage.
+  Read its `paper_tree` and compare it with `git rev-parse HEAD:<paper>`. If
+  they differ, report **"reviews are of an older draft"** and name both trees.
+  This is a warning, not a FAIL: the reviews are advisory.
+- Is `meta-review.md` present in the latest set, and does its `personas` list
+  cover every persona file that ran? Report any gap; the `peer-review` check
+  will also FAIL on it.
+- Report the latest venue score from the meta-review, if one is recorded.
+- Do not treat a peer review as part of `review-agent`'s verdict. Peer reviews
+  are advisory records; `review-agent` remains the merge gate.
+
 ## 4. Deadline and budget
 
 If the delta declares a deadline, report days remaining. Report current page

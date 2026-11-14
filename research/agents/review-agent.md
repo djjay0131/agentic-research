@@ -154,3 +154,7 @@ This agent is triggered by:
 2. GitHub Actions PR check workflow (automated compile + citation scan)
 
 Results are posted as PR comments for visibility.
+
+Peer reviews from `/research:peer-review` are **advisory**. They are not part of
+this agent's verdict: a peer review can raise concerns, but only the checks
+above approve or request changes. A human decides what to act on.

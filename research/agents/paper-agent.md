@@ -45,7 +45,7 @@ Use this agent for:
 1. **Outline** → Create a detailed outline with section-level plans in `<construction>/design/`
 2. **Related Work Survey** → Build a literature map before writing
 3. **Draft** → Write each section following the outline
-4. **Internal Review** → Self-review for technical correctness and narrative flow
+4. **Internal Review** → Self-review for technical correctness and narrative flow; run `/research:peer-review` for independent, advisory substance review
 5. **Revise** → Address review feedback, tighten writing
 6. **Polish** → Final formatting, figure quality, camera-ready prep
 
@@ -113,3 +113,5 @@ Adapt based on venue and paper type:
 - Delegates to **latex-agent** for all compilation and formatting
 - Coordinates with **memory-agent** for progress tracking
 - Triggers **review-agent** for quality gates before submission
+- Runs `/research:peer-review` for independent, advisory substance review;
+  peer reviews do not replace `review-agent`
