@@ -231,12 +231,17 @@ function peerResults(run) {
   return run.data.results.filter((r) => r.check === 'peer-review');
 }
 
-function assertPeerStatus(run, status, messagePattern) {
+function assertPeer(run, expectedStatuses, messagePattern) {
   const peer = peerResults(run);
-  const match = peer.filter((r) => r.status === status &&
-    (!messagePattern || messagePattern.test(r.message)));
-  assert.ok(match.length > 0,
-    `expected a ${status} peer-review result${messagePattern ? ` matching ${messagePattern}` : ''}; got ${JSON.stringify(peer)}`);
+  assert.deepEqual(
+    peer.map((r) => r.status).sort(),
+    [...expectedStatuses].sort(),
+    `unexpected peer-review statuses: ${JSON.stringify(peer)}`
+  );
+  if (messagePattern) {
+    assert.ok(peer.some((r) => messagePattern.test(r.message)),
+      `no peer-review result matched ${messagePattern}: ${JSON.stringify(peer)}`);
+  }
 }
 
 function cleanup(dir) {
@@ -270,7 +275,7 @@ test('valid complete review set: PASS', () => {
     const run = runChecker(dir);
     assert.equal(run.data.counts.FAIL, 0);
     assert.equal(peerResults(run).filter((r) => r.status === 'WARN').length, 0);
-    assertPeerStatus(run, 'PASS', /well formed/);
+    assertPeer(run, ['PASS'], /well formed/);
   } finally { cleanup(dir); }
 });
 
@@ -282,7 +287,7 @@ test('persona file missing required frontmatter: FAIL', () => {
       'meta-review.md': meta(ids, ['methods']),
     });
     const run = runChecker(dir);
-    assertPeerStatus(run, 'FAIL', /reviewer_session/);
+    assertPeer(run, ['FAIL'], /reviewer_session/);
   } finally { cleanup(dir); }
 });
 
@@ -294,7 +299,7 @@ test('persona file missing a required section: FAIL', () => {
       'meta-review.md': meta(ids, ['methods']),
     });
     const run = runChecker(dir);
-    assertPeerStatus(run, 'FAIL', /Could not assess/);
+    assertPeer(run, ['FAIL'], /Could not assess/);
   } finally { cleanup(dir); }
 });
 
@@ -307,7 +312,7 @@ test('two persona files sharing reviewer_session: FAIL', () => {
       'meta-review.md': meta(ids, ['methods', 'venue']),
     });
     const run = runChecker(dir);
-    assertPeerStatus(run, 'FAIL', /reviewer_session .*independence/);
+    assertPeer(run, ['FAIL'], /reviewer_session .*independence/);
   } finally { cleanup(dir); }
 });
 
@@ -320,7 +325,7 @@ test('a persona file naming another persona\'s file: FAIL', () => {
       'meta-review.md': meta(ids, ['methods', 'venue']),
     });
     const run = runChecker(dir);
-    assertPeerStatus(run, 'FAIL', /venue\.md.*independence/);
+    assertPeer(run, ['FAIL'], /venue\.md.*independence/);
   } finally { cleanup(dir); }
 });
 
@@ -333,7 +338,7 @@ test('persona files disagreeing on paper_commit: FAIL', () => {
       'meta-review.md': meta(ids, ['methods', 'venue']),
     });
     const run = runChecker(dir);
-    assertPeerStatus(run, 'FAIL', /disagree on paper_commit/);
+    assertPeer(run, ['FAIL'], /disagree on paper_commit/);
   } finally { cleanup(dir); }
 });
 
@@ -344,7 +349,7 @@ test('meta-review.md missing: FAIL', () => {
       'methods.md': review('methods', ids),
     });
     const run = runChecker(dir);
-    assertPeerStatus(run, 'FAIL', /meta-review\.md is missing/);
+    assertPeer(run, ['FAIL'], /meta-review\.md is missing/);
   } finally { cleanup(dir); }
 });
 
@@ -357,7 +362,7 @@ test('meta-review.md missing a persona it should aggregate: FAIL', () => {
       'meta-review.md': meta(ids, ['methods']),
     });
     const run = runChecker(dir);
-    assertPeerStatus(run, 'FAIL', /missing persona.*venue/);
+    assertPeer(run, ['FAIL'], /missing persona.*venue/);
   } finally { cleanup(dir); }
 });
 
@@ -372,8 +377,7 @@ test('latest review set is of an older paper tree: WARN', () => {
       'meta-review.md': meta(ids, ['methods', 'venue', 'reader'], { paper_tree: oldTree }),
     });
     const run = runChecker(dir);
-    assertPeerStatus(run, 'WARN', /older draft/);
-    assert.equal(peerResults(run).filter((r) => r.status === 'FAIL').length, 0);
+    assertPeer(run, ['PASS', 'WARN'], /older draft/);
   } finally { cleanup(dir); }
 });
 
@@ -381,9 +385,8 @@ test('delta has no Peer Review section: WARN', () => {
   const { dir } = createFixture({ peerReview: false });
   try {
     const run = runChecker(dir);
-    assertPeerStatus(run, 'WARN', /## Peer Review/);
-    assertPeerStatus(run, 'PASS', /no reviews yet/);
-    assert.equal(peerResults(run).filter((r) => r.status === 'FAIL').length, 0);
+    assertPeer(run, ['PASS', 'WARN'], /## Peer Review/);
+    assert.ok(peerResults(run).some((r) => /no reviews yet/.test(r.message)));
   } finally { cleanup(dir); }
 });
 
