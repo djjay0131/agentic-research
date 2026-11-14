@@ -19,8 +19,10 @@ The meta-review is the only place their findings meet.
 ## Path resolution
 
 Read `docs/research-delta.md`. If it does not exist, stop and tell the user to
-run `/research:establish`. If `docs/governance-delta.md` also exists, it is
-authoritative for the memory-bank and roadmap paths.
+run `/research:establish`. If a governance delta exists, it is authoritative for
+the memory-bank and roadmap paths. Look for
+`llm/governance/governance-delta.md` first, then the legacy
+`docs/governance-delta.md`.
 
 Resolve every placeholder from the research delta:
 

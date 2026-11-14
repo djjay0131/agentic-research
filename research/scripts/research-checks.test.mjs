@@ -60,7 +60,7 @@ function git(dir, args) {
   }).toString().trim();
 }
 
-function deltaText({ peerReview = true } = {}) {
+function deltaText({ peerReview = true, governance = 'no' } = {}) {
   return `# Research Delta: Fixture
 
 Status: Draft
@@ -111,13 +111,25 @@ ${peerReview ? `## Peer Review
 
 ` : ''}## Governance Composition
 
-Governance delta present: no
+Governance delta present: ${governance}
 `;
 }
 
-function createFixture({ peerReview = true } = {}) {
+function governanceDeltaText() {
+  return `# Governance Delta: Fixture
+
+## L0 Allowlist
+
+deny paper/**
+deny llm/construction/design/**
+deny docs/research-delta.md
+`;
+}
+
+function createFixture({ peerReview = true, governance = 'no', govPath = null } = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'ar-peer-review-'));
-  write(dir, 'docs/research-delta.md', deltaText({ peerReview }));
+  write(dir, 'docs/research-delta.md', deltaText({ peerReview, governance }));
+  if (govPath) write(dir, govPath, governanceDeltaText());
   write(dir, 'paper/main.tex', `\\documentclass{article}
 \\begin{document}
 Fixture paper.
@@ -244,6 +256,23 @@ function assertPeer(run, expectedStatuses, messagePattern) {
   }
 }
 
+function govResults(run) {
+  return run.data.results.filter((r) => r.check === 'governance.sync');
+}
+
+function assertGov(run, expectedStatuses, messagePattern) {
+  const gov = govResults(run);
+  assert.deepEqual(
+    gov.map((r) => r.status).sort(),
+    [...expectedStatuses].sort(),
+    `unexpected governance.sync statuses: ${JSON.stringify(gov)}`
+  );
+  if (messagePattern) {
+    assert.ok(gov.some((r) => messagePattern.test(r.message)),
+      `no governance.sync result matched ${messagePattern}: ${JSON.stringify(gov)}`);
+  }
+}
+
 function cleanup(dir) {
   rmSync(dir, { recursive: true, force: true });
 }
@@ -260,6 +289,52 @@ test('clean repo with no reviews: PASS "no reviews yet"', () => {
     assert.equal(peer.length, 1, `expected one peer-review result, got ${JSON.stringify(peer)}`);
     assert.equal(peer[0].status, 'PASS');
     assert.match(peer[0].message, /no reviews yet/);
+  } finally { cleanup(dir); }
+});
+
+test('governance delta at llm/governance/: governance.sync PASS', () => {
+  const { dir } = createFixture({
+    governance: 'yes',
+    govPath: 'llm/governance/governance-delta.md',
+  });
+  try {
+    const run = runChecker(dir);
+    assert.ok(run.data, `checker did not emit JSON: ${run.stderr}`);
+    assertGov(run, ['PASS'], /llm\/governance\/governance-delta\.md exists/);
+  } finally { cleanup(dir); }
+});
+
+test('legacy governance delta at docs/: governance.sync PASS', () => {
+  const { dir } = createFixture({
+    governance: 'yes',
+    govPath: 'docs/governance-delta.md',
+  });
+  try {
+    const run = runChecker(dir);
+    assert.ok(run.data, `checker did not emit JSON: ${run.stderr}`);
+    assertGov(run, ['PASS'], /docs\/governance-delta\.md exists/);
+  } finally { cleanup(dir); }
+});
+
+test('governance delta absent while delta says present: FAIL', () => {
+  const { dir } = createFixture({ governance: 'yes' });
+  try {
+    const run = runChecker(dir);
+    assert.ok(run.data, `checker did not emit JSON: ${run.stderr}`);
+    assertGov(run, ['FAIL'],
+      /llm\/governance\/governance-delta\.md nor docs\/governance-delta\.md/);
+  } finally { cleanup(dir); }
+});
+
+test('governance delta present while delta says absent: FAIL', () => {
+  const { dir } = createFixture({
+    governance: 'no',
+    govPath: 'llm/governance/governance-delta.md',
+  });
+  try {
+    const run = runChecker(dir);
+    assert.ok(run.data, `checker did not emit JSON: ${run.stderr}`);
+    assertGov(run, ['FAIL'], /llm\/governance\/governance-delta\.md exists/);
   } finally { cleanup(dir); }
 });
 

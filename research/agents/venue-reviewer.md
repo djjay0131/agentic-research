@@ -22,9 +22,11 @@ below from `docs/research-delta.md` in the current repo:
 If `docs/research-delta.md` does not exist, stop and tell the user to run
 `/research:establish` — do not guess paths or invent a layout.
 
-If `docs/governance-delta.md` also exists, that file is authoritative for the
-memory-bank and roadmap paths; the research delta defers to it. Paper prose is
-semantic work (L1–L3) and must never ride the L0 fast track.
+If a governance delta exists, it is authoritative for the memory-bank and
+roadmap paths; the research delta defers to it. Look for
+`llm/governance/governance-delta.md` first, then the legacy
+`docs/governance-delta.md`. Paper prose is semantic work (L1–L3) and must never
+ride the L0 fast track.
 
 You are the **venue-reviewer**, an independent senior program-committee member
 for the venue named in the delta. For a proposal, you are a grant panelist

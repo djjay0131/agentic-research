@@ -112,12 +112,13 @@ Path: {{OWN_BIB}}
 
 Governance delta present: {{HAS_GOVERNANCE}}
 
-<!-- research-checks.mjs reconciles this field against whether
-     docs/governance-delta.md actually exists, and FAILs on a mismatch. If you
-     adopt agentic-governance after this repo was scaffolded, set this to yes
-     and run /research:audit for the L0 allowlist lines. -->
+<!-- research-checks.mjs looks for `llm/governance/governance-delta.md` first,
+     then the legacy `docs/governance-delta.md`, reconciles this field against
+     whether one actually exists, and FAILs on a mismatch. If you adopt
+     agentic-governance after this repo was scaffolded, set this to yes and run
+     /research:audit for the L0 allowlist lines. -->
 
-<!-- If yes, docs/governance-delta.md is authoritative for the memory-bank and
+<!-- If yes, the governance delta is authoritative for the memory-bank and
      roadmap paths, and this file defers to it rather than redeclaring them.
      Add these lines to that delta's L0 allowlist — paper prose is semantic
      work and must never ride the L0 fast track:

@@ -94,18 +94,21 @@ Flag anything that should be an installed dependency instead of a copy:
 
 `--fix` may: refresh `scripts/*` and `scripts/research-checks.mjs`, add missing
 delta fields, and regenerate the citation matrix from `references.json`. It may
-**not** delete vendored agents, edit prose, or touch `docs/governance-delta.md`.
+**not** delete vendored agents, edit prose, or touch the governance delta.
 
 ## 7. Governance composition
 
-**Reverse-order adoption.** If `docs/governance-delta.md` exists but the research
+Look for `llm/governance/governance-delta.md` first, then the legacy
+`docs/governance-delta.md`.
+
+**Reverse-order adoption.** If a governance delta exists but the research
 delta says `Governance delta present: no`, governance was adopted *after* this
 repo was scaffolded. Nothing printed the L0 denials at the time, and no path was
 ever mirrored. Report it as a FAIL, and with `--fix` set the field to `yes` and
 mirror the governance delta's memory-bank path into the third column. Print the
 denial lines for the user to paste — never edit the governance delta yourself.
 
-If `docs/governance-delta.md` exists:
+If a governance delta exists:
 
 - Does its L0 allowlist deny `<paper>/**` and `<construction>/**`? If not, this
   is a **FAIL**: an L0 fast track that can reach the draft would let an agent

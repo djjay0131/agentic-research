@@ -42,6 +42,7 @@ const fail = (c, m) => results.push({ check: c, status: 'FAIL', message: m });
 
 const read = (p) => { try { return readFileSync(join(ROOT, p), 'utf8'); } catch { return null; } };
 const has = (p) => existsSync(join(ROOT, p));
+const GOV_DELTA = ['llm/governance/governance-delta.md', 'docs/governance-delta.md'].find(has) || null;
 
 function walk(dir, exts, acc = []) {
   const abs = join(ROOT, dir);
@@ -68,7 +69,7 @@ if (!delta) {
     .trim()
     .replace(/^\*\*|\*\*$/g, '')
     // A provenance annotation may follow the value in the same cell, e.g.
-    //   `llm/memory_bank/` (from docs/governance-delta.md - do not change here)
+    //   `llm/memory_bank/` (from the governance delta - do not change here)
     // Strip it: the value is what precedes the parenthetical.
     .replace(/\s*\((?:from|source|via|see|per)\b[^)]*\)\s*$/i, '')
     .replace(/\s*<!--[^>]*-->\s*$/, '')
@@ -184,23 +185,24 @@ if (delta) {
     const m = delta.match(/^\s*Governance delta present\s*:\s*(\w+)/im);
     return m ? /^(yes|true)$/i.test(m[1]) : null;
   })();
-  const actual = has('docs/governance-delta.md');
+  const actual = GOV_DELTA !== null;
 
   if (claimed === null) {
     warn('governance.sync', 'delta has no "Governance delta present" field — cannot reconcile');
   } else if (claimed === actual) {
     pass('governance.sync', actual
-      ? 'declares governance present, and docs/governance-delta.md exists'
+      ? `declares governance present, and ${GOV_DELTA} exists`
       : 'declares no governance, and none present');
   } else if (actual && !claimed) {
     fail('governance.sync',
-      'delta says "Governance delta present: no" but docs/governance-delta.md exists — ' +
+      `delta says "Governance delta present: no" but ${GOV_DELTA} exists — ` +
       'governance was adopted after this repo was scaffolded. Set the field to yes, ' +
       'mirror the memory-bank path from the governance delta, and run /research:audit ' +
       'to get the L0 allowlist lines that are missing.');
   } else {
     fail('governance.sync',
-      'delta says "Governance delta present: yes" but docs/governance-delta.md is missing — ' +
+      'delta says "Governance delta present: yes" but neither ' +
+      'llm/governance/governance-delta.md nor docs/governance-delta.md is present — ' +
       'either it was deleted, or the field was set by hand. Every path this delta says it ' +
       'mirrors from governance is now unsourced.');
   }
@@ -208,7 +210,7 @@ if (delta) {
   // Reverse-order repos never got the L0 denials printed, because research ran
   // before there was a delta to add them to.
   if (actual) {
-    const gov = read('docs/governance-delta.md') || '';
+    const gov = read(GOV_DELTA) || '';
     const wantDenies = [`deny ${cfg.paperDir}/**`];
     if (cfg.construction) wantDenies.push(`deny ${cfg.construction.replace(/\/+$/, '')}/design/**`);
     wantDenies.push('deny docs/research-delta.md');

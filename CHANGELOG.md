@@ -55,6 +55,16 @@ reviews. Each fixture asserts the exact status, the suite runs twice and
 asserts identical output, and the existing checks must produce no FAIL on a
 clean fixture. New `.github/workflows/ci.yml` runs it on Node 20.
 
+### Fixed
+`governance.sync` only looked for the governance delta at
+`docs/governance-delta.md`. `agentic-governance` v0.3+ keeps it at
+`llm/governance/governance-delta.md`, so governed repos FAILed and a v1.9.0
+rollout could overwrite locally patched copies. The check and its messages now
+look at `llm/governance/governance-delta.md` first, then the legacy
+`docs/governance-delta.md`, naming the path actually found (or both candidates
+when neither exists). Agents, skills and the delta template state the same
+lookup order.
+
 ### OpenCode compatibility moves to 1.10.0
 The OpenCode-compatibility work previously scoped as 1.9.0 is now 1.10.0. This
 release is Claude Code only.

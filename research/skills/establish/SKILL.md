@@ -50,7 +50,8 @@ produces the old layout with no warning, which is worse than failing.
 - Read `${CLAUDE_PLUGIN_ROOT}/../VERSION` for the version to pin.
 - If `docs/research-delta.md` already exists, this is an **upgrade**, not a fresh
   install: skip to the upgrade path at the end of this file.
-- Check for `docs/governance-delta.md`. If present, this repo also uses
+- Look for `llm/governance/governance-delta.md` first, then the legacy
+  `docs/governance-delta.md`. If one is present, this repo also uses
   `agentic-governance` — see Step 3.
 - Check the toolchain: `latexmk`, `pdflatex`, `node` (≥18), `pdfinfo`, `git`.
   If anything is missing, **run the `preflight` skill's detection and offer its
@@ -184,7 +185,7 @@ author gave you. Leave the `House Style` bullets empty unless the author asked
 for specific rules. If Step 2b was skipped, keep `none` /
 `accept-to-reject (generic)` — do not invent a standard or a house style.
 
-**If `docs/governance-delta.md` exists:**
+**If a governance delta exists:**
 
 - **Mirror, do not invent.** Read the memory-bank and roadmap paths out of the
   governance delta and write *those exact values* into the research delta, each
@@ -195,7 +196,7 @@ for specific rules. If Step 2b was skipped, keep `none` /
   inside the value cell becomes part of the path when the delta is parsed:
 
   ```
-  | Memory Bank | `llm/memory_bank/` | from docs/governance-delta.md — do not change here |
+  | Memory Bank | `llm/memory_bank/` | from the governance delta — do not change here |
   ```
 
   Set `Governance delta present: yes`. Do not choose a different path, and do
@@ -230,7 +231,7 @@ for specific rules. If Step 2b was skipped, keep `none` /
 
 ### Step 3a — Governance adopted later
 
-If `docs/governance-delta.md` is **absent**, write `Governance delta present: no`
+If no governance delta is found at either path, write `Governance delta present: no`
 — and tell the user, in the final report, that if they adopt `agentic-governance`
 later they must come back and run `/research:audit`, because that field will
 then be stale and the L0 denial lines will never have been printed.
