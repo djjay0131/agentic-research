@@ -1,5 +1,46 @@
 # Changelog
 
+## 1.10.0 — 2026-11-16
+
+One release so each adopting repo gets one upgrade PR. Design:
+`llm/specs/2026-11-16-v1.10-opencode-and-review-gate-design.md`.
+
+### OpenCode support
+`research/opencode/install.mjs` generates OpenCode skills
+(`~/.config/opencode/skills/research-<skill>/`), agents and commands from the
+Claude Code plugin, substituting the absolute plugin root for
+`${CLAUDE_PLUGIN_ROOT}`. Agent tool limits are translated into OpenCode
+permissions; the reviewer personas run as subagents. Idempotent, with
+`--dry-run` and `--uninstall` driven by a manifest of the files it owns.
+`peer-review` now names each harness's subagent mechanism.
+
+### Peer review as a gate
+New delta rows `Gate` (`off` | `warn` | `required`, default `warn`) and
+`Gate Stage`. `meta-review.md` gains a Dispositions table, written with every
+decision `pending`. Under `required` the `peer-review` check fails without a
+review at the required stage, an undecided essential fix, a `fixed` decision
+without a real commit, a `wont-fix`/`deferred` without a reason, or a reviewed
+commit that is not an ancestor of `HEAD`. A paper changed since review stays a
+warning in every mode.
+
+### Deterministic upgrader
+`research/scripts/upgrade.mjs <repo>` adds missing delta sections and rows
+without changing set values, refreshes plugin-owned scripts, and bumps the pin
+(recognizing `vX.Y.Z`, `vX.Y` and table-row pins). Scripts whose content does
+not match a released version are kept and reported; `--force` overrides.
+`establish`'s upgrade path calls it.
+
+### Fixed
+- Latest review set: same-day sets now order by stage
+  (outline < draft < camera-ready).
+- A meta-review missing `paper_commit`, `paper_tree` or `plugin_version` now
+  fails, like a persona file.
+
+### Tests
+Three suites, all in CI: installer, checks (gate rows in each mode), upgrader
+(fixtures copied from four real repos' deltas). Each runs twice and must be
+byte-identical.
+
 ## 1.9.0 — 2026-11-14
 
 ### Peer review, with three independent personas

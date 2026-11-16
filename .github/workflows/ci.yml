@@ -17,3 +17,9 @@ jobs:
 
       - name: Run research-checks test suite
         run: node research/scripts/research-checks.test.mjs
+
+      - name: Run upgrader test suite
+        run: node research/scripts/upgrade.test.mjs
+
+      - name: Run OpenCode installer test suite
+        run: node research/opencode/install.test.mjs

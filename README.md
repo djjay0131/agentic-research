@@ -36,6 +36,35 @@ against the `VERSION` file in this repo. **This matters:** v1.0.0 scaffolded
 `construction/` and `scripts/` at the repo root; v1.1.0 moved them. Running a
 stale copy silently produces the old layout.
 
+### OpenCode
+
+The same skills and agents run under [OpenCode](https://opencode.ai). Clone this
+repo and run the installer, which generates OpenCode skills, agents and commands
+from the Claude Code plugin (there is one source, not two):
+
+```bash
+node research/opencode/install.mjs            # into ~/.config/opencode
+node research/opencode/install.mjs --dry-run  # show what it would do
+node research/opencode/install.mjs --uninstall
+```
+
+Names are prefixed `research-` (OpenCode does not allow `:`), so
+`/research:peer-review` is `research-peer-review` there. The installer writes the
+absolute plugin path into the generated files, so **re-run it after every
+update** of your clone. Details: `research/opencode/README.md`.
+
+### Upgrading a repo that already uses the plugin
+
+```bash
+node research/scripts/upgrade.mjs <repo> --dry-run   # what would change
+node research/scripts/upgrade.mjs <repo>
+```
+
+It adds delta sections and rows the template has and the repo lacks (never
+changing a value you set), refreshes plugin-owned scripts, and bumps the pin.
+A script you have edited is **kept** and reported, unless you pass `--force`.
+`/research:establish` on an existing repo calls this for the mechanical part.
+
 ## Use
 
 ```
@@ -124,6 +153,16 @@ The `peer-review` check validates **structure and independence markers only** â€
 required frontmatter and sections, unique reviewer sessions, no cross-references,
 matching `paper_commit`, meta-review coverage, and whether the latest review is
 of an older paper tree. It cannot judge review quality.
+
+**As a gate.** Set `Gate` in the delta's Peer Review section to `off`, `warn`
+(default) or `required`, and `Gate Stage` to the minimum review stage. With
+`required`, the check fails unless a review set exists at or past that stage,
+every essential fix in the meta-review's **Dispositions** table has a decision
+(`fixed` with a commit, or `wont-fix` / `deferred` with a reason), and the
+reviewed commit is on the current branch. A paper changed since its review is
+only ever a warning, because fixing what reviewers found changes the paper; when
+to re-review is a human call. CI checks the record; it does not generate
+reviews, so no API key is involved.
 
 ### Scripts, installed into your repo
 
