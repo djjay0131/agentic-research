@@ -29,6 +29,7 @@ import assert from 'node:assert/strict';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const UPGRADE = resolve(HERE, 'upgrade.mjs');
+const GENERATOR = resolve(HERE, 'gen-released-hashes.mjs');
 const FIXTURES = resolve(HERE, 'fixtures', 'upgrade');
 const TEMPLATE = resolve(HERE, '..', 'templates', 'research-delta-template.md');
 const VERSION = readFileSync(resolve(HERE, '..', '..', 'VERSION'), 'utf8').trim();
@@ -183,7 +184,8 @@ function versionActions(changes) {
 
 function pluginScripts() {
   const templatesDir = resolve(HERE, '..', 'templates', 'scripts');
-  const names = readdirSync(templatesDir).filter((name) => name !== '_paths.sh');
+  const names = readdirSync(templatesDir)
+    .filter((name) => name !== '_paths.sh' && name !== 'RELEASED-HASHES.json');
   return names.map((name) => ({ name, source: join(templatesDir, name) }))
     .concat({ name: 'research-checks.mjs', source: resolve(HERE, 'research-checks.mjs') })
     .sort((a, b) => a.name.localeCompare(b.name));
@@ -195,7 +197,11 @@ function paperDirFromDelta(text) {
   return m ? m[1].trim().replace(/\/+$/, '') : 'paper';
 }
 
-function makeRepo(fixtureName, { stale = [], missing = [], extra = {} } = {}) {
+function makeRepo(fixtureName, {
+  missing = [],
+  extra = {},
+  scriptContents = {},
+} = {}) {
   const text = readFileSync(join(FIXTURES, fixtureName), 'utf8');
   const dir = mkdtempSync(join(tmpdir(), 'ar-upgrade-'));
   write(dir, 'docs/research-delta.md', text);
@@ -206,8 +212,8 @@ function makeRepo(fixtureName, { stale = [], missing = [], extra = {} } = {}) {
   for (const script of pluginScripts()) {
     const target = join(dir, scriptsDir, script.name);
     if (missing.includes(script.name)) continue;
-    if (stale.includes(script.name)) {
-      writeFileSync(target, `# stale ${script.name}\n`);
+    if (Object.prototype.hasOwnProperty.call(scriptContents, script.name)) {
+      writeFileSync(target, scriptContents[script.name]);
     } else {
       copyFileSync(script.source, target);
     }
@@ -235,6 +241,25 @@ function scenario(fixtureName, args = ['--dry-run', '--json'], options = {}) {
     const res = runUpgrade(dir, args);
     const finalText = readFileSync(join(dir, 'docs', 'research-delta.md'), 'utf8');
     return { dir, text, res, finalText, data: parseJson(res.stdout) };
+  } finally {
+    cleanup(dir);
+  }
+}
+
+function scriptScenario(args = ['--json'], options = {}) {
+  const { dir, text } = makeRepo('saner2027-governed-agents.md', options);
+  try {
+    const res = runUpgrade(dir, args);
+    const finalText = readFileSync(join(dir, 'docs', 'research-delta.md'), 'utf8');
+    const scriptsDir = join(dir, 'paper', 'scripts');
+    const files = {};
+    const modes = {};
+    for (const name of readdirSync(scriptsDir)) {
+      const abs = join(scriptsDir, name);
+      files[name] = readFileSync(abs, 'utf8');
+      modes[name] = statSync(abs).mode & 0o777;
+    }
+    return { text, res, finalText, data: parseJson(res.stdout), files, modes };
   } finally {
     cleanup(dir);
   }
@@ -347,13 +372,17 @@ test('delta with no pin gains one and says so', () => {
 /* Scripts                                                                   */
 /* ------------------------------------------------------------------------- */
 
+const RELEASED_BUILD = join(FIXTURES, 'released-build.sh');
+const SANER_BUILD = join(FIXTURES, 'saner-build.sh');
+const CURRENT_BUILD = resolve(HERE, '..', 'templates', 'scripts', 'build.sh');
+
 test('plugin scripts refreshed; _paths.sh and local scripts untouched', () => {
   const extra = {
     'page-check.sh': '#!/bin/sh\n# repo-local script\n',
   };
   const run = twice(() => {
     const { dir } = makeRepo('saner2027-governed-agents.md', {
-      stale: ['build.sh', 'research-checks.mjs'],
+      scriptContents: { 'build.sh': readFileSync(RELEASED_BUILD, 'utf8') },
       missing: ['arxiv-package.sh'],
       extra,
     });
@@ -377,13 +406,86 @@ test('plugin scripts refreshed; _paths.sh and local scripts untouched', () => {
   assert.deepEqual(scriptActions(run.data.changes), [
     { action: 'add-script', path: 'paper/scripts/arxiv-package.sh' },
     { action: 'update-script', path: 'paper/scripts/build.sh' },
-    { action: 'update-script', path: 'paper/scripts/research-checks.mjs' },
   ]);
-  assert.equal(run.build, readFileSync(resolve(HERE, '..', 'templates', 'scripts', 'build.sh'), 'utf8'));
+  assert.deepEqual(run.data.kept, []);
+  assert.equal(run.build, readFileSync(CURRENT_BUILD, 'utf8'));
   assert.equal(run.checks, readFileSync(resolve(HERE, 'research-checks.mjs'), 'utf8'));
   assert.equal(run.paths, '#!/usr/bin/env bash\n# local _paths.sh — must be preserved\n');
   assert.equal(run.extra, extra['page-check.sh']);
   assert.equal(run.mode, 0o755, 'refreshed script should be executable');
+});
+
+test('unmodified released script is replaced', () => {
+  const run = twice(() => scriptScenario(['--json'], {
+    scriptContents: { 'build.sh': readFileSync(RELEASED_BUILD, 'utf8') },
+  }));
+  assert.equal(run.res.status, 0, run.res.stderr);
+  assert.deepEqual(scriptActions(run.data.changes), [
+    { action: 'update-script', path: 'paper/scripts/build.sh' },
+  ]);
+  assert.deepEqual(run.data.kept, []);
+  assert.equal(run.files['build.sh'], readFileSync(CURRENT_BUILD, 'utf8'));
+  assert.equal(run.modes['build.sh'], 0o755);
+});
+
+test('locally modified script is kept and reported', () => {
+  const local = readFileSync(SANER_BUILD, 'utf8');
+  const run = twice(() => scriptScenario(['--json'], {
+    scriptContents: { 'build.sh': local },
+  }));
+  assert.equal(run.res.status, 0, run.res.stderr);
+  assert.deepEqual(scriptActions(run.data.changes), []);
+  assert.deepEqual(run.data.kept, ['paper/scripts/build.sh']);
+  assert.equal(run.files['build.sh'], local, 'locally modified script must not be overwritten');
+});
+
+test('--force replaces a locally modified script', () => {
+  const local = readFileSync(SANER_BUILD, 'utf8');
+  const run = twice(() => scriptScenario(['--json', '--force'], {
+    scriptContents: { 'build.sh': local },
+  }));
+  assert.equal(run.res.status, 0, run.res.stderr);
+  assert.deepEqual(scriptActions(run.data.changes), [
+    { action: 'update-script', path: 'paper/scripts/build.sh' },
+  ]);
+  assert.deepEqual(run.data.kept, []);
+  assert.equal(run.files['build.sh'], readFileSync(CURRENT_BUILD, 'utf8'));
+});
+
+test('absent plugin script is created', () => {
+  const run = twice(() => scriptScenario(['--json'], { missing: ['build.sh'] }));
+  assert.equal(run.res.status, 0, run.res.stderr);
+  assert.deepEqual(scriptActions(run.data.changes), [
+    { action: 'add-script', path: 'paper/scripts/build.sh' },
+  ]);
+  assert.deepEqual(run.data.kept, []);
+  assert.equal(run.files['build.sh'], readFileSync(CURRENT_BUILD, 'utf8'));
+  assert.equal(run.modes['build.sh'], 0o755);
+});
+
+test('--show-diff prints a unified diff for a kept script', () => {
+  const local = readFileSync(SANER_BUILD, 'utf8');
+  const run = twice(() => scriptScenario(['--show-diff'], {
+    scriptContents: { 'build.sh': local },
+  }));
+  assert.equal(run.res.status, 0, run.res.stderr);
+  assert.match(run.res.stdout,
+    /! locally modified: paper\/scripts\/build\.sh \(kept; plugin copy differs\)/);
+  assert.match(run.res.stdout, /^--- a\/paper\/scripts\/build\.sh$/m);
+  assert.match(run.res.stdout, /^\+\+\+ b\/paper\/scripts\/build\.sh$/m);
+  assert.match(run.res.stdout, /^-# saner2027-governed-agents/m);
+  assert.equal(run.files['build.sh'], local);
+});
+
+test('committed RELEASED-HASHES.json equals the generator output', () => {
+  const run = twice(() => {
+    const res = spawnSync(process.execPath, [GENERATOR, '--check'], {
+      encoding: 'utf8',
+      cwd: resolve(HERE, '..', '..'),
+    });
+    return { res };
+  });
+  assert.equal(run.res.status, 0, run.res.stderr);
 });
 
 /* ------------------------------------------------------------------------- */
