@@ -94,6 +94,13 @@ because the code side may draw on it too.
 | Venue Call | none |
 | Review Form | none |
 | Score Scale | accept-to-reject (generic) |
+| Gate | warn |
+| Gate Stage | draft |
+
+<!-- Gate: off | warn | required. Default warn. `required` makes the latest
+     review set a merge gate; fixing what reviewers found still only warns.
+     Gate Stage: outline | draft | camera-ready. Default draft. The latest set
+     must be at least this advanced, or the gate fails. -->
 
 **House Style**
 
