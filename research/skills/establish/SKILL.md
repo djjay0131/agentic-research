@@ -184,6 +184,8 @@ defaults with the standard(s), call path, review form path, and score scale the
 author gave you. Leave the `House Style` bullets empty unless the author asked
 for specific rules. If Step 2b was skipped, keep `none` /
 `accept-to-reject (generic)` — do not invent a standard or a house style.
+Leave `Gate` at `warn` and `Gate Stage` at `draft` unless the owner asks for a
+stricter merge gate; the `peer-review` check reads both.
 
 **If a governance delta exists:**
 
