@@ -22,9 +22,11 @@ below from `docs/research-delta.md` in the current repo:
 If `docs/research-delta.md` does not exist, stop and tell the user to run
 `/research:establish` — do not guess paths or invent a layout.
 
-If `docs/governance-delta.md` also exists, that file is authoritative for the
-memory-bank and roadmap paths; the research delta defers to it. Paper prose is
-semantic work (L1–L3) and must never ride the L0 fast track.
+If a governance delta exists, it is authoritative for the memory-bank and
+roadmap paths; the research delta defers to it. Look for
+`llm/governance/governance-delta.md` first, then the legacy
+`docs/governance-delta.md`. Paper prose is semantic work (L1–L3) and must never
+ride the L0 fast track.
 
 You are the **review-agent**, responsible for reviewing all document changes before they merge to main. Every PR must pass your checks before approval.
 
@@ -154,3 +156,7 @@ This agent is triggered by:
 2. GitHub Actions PR check workflow (automated compile + citation scan)
 
 Results are posted as PR comments for visibility.
+
+Peer reviews from `/research:peer-review` are **advisory**. They are not part of
+this agent's verdict: a peer review can raise concerns, but only the checks
+above approve or request changes. A human decides what to act on.

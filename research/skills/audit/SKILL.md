@@ -46,6 +46,24 @@ script is missing or older than the plugin's copy, say so (`--fix` refreshes it)
   do: drop the class file into `<paper>/`, update `\documentclass` and the
   Template field, rebuild.
 
+## 3c. Peer review
+
+- Does the delta have a `## Peer Review` section? If not, report it — the
+  `peer-review` check warns, and `/research:peer-review` will have to infer a
+  standard and use a generic score scale. `--fix` may append the template
+  section with its default `none` values; it may **not** invent a standard,
+  venue call, review form, score scale, or house style.
+- List `<construction>/reviews/` and report the latest set's date and stage.
+  Read its `paper_tree` and compare it with `git rev-parse HEAD:<paper>`. If
+  they differ, report **"reviews are of an older draft"** and name both trees.
+  This is a warning, not a FAIL: the reviews are advisory.
+- Is `meta-review.md` present in the latest set, and does its `personas` list
+  cover every persona file that ran? Report any gap; the `peer-review` check
+  will also FAIL on it.
+- Report the latest venue score from the meta-review, if one is recorded.
+- Do not treat a peer review as part of `review-agent`'s verdict. Peer reviews
+  are advisory records; `review-agent` remains the merge gate.
+
 ## 4. Deadline and budget
 
 If the delta declares a deadline, report days remaining. Report current page
@@ -76,18 +94,21 @@ Flag anything that should be an installed dependency instead of a copy:
 
 `--fix` may: refresh `scripts/*` and `scripts/research-checks.mjs`, add missing
 delta fields, and regenerate the citation matrix from `references.json`. It may
-**not** delete vendored agents, edit prose, or touch `docs/governance-delta.md`.
+**not** delete vendored agents, edit prose, or touch the governance delta.
 
 ## 7. Governance composition
 
-**Reverse-order adoption.** If `docs/governance-delta.md` exists but the research
+Look for `llm/governance/governance-delta.md` first, then the legacy
+`docs/governance-delta.md`.
+
+**Reverse-order adoption.** If a governance delta exists but the research
 delta says `Governance delta present: no`, governance was adopted *after* this
 repo was scaffolded. Nothing printed the L0 denials at the time, and no path was
 ever mirrored. Report it as a FAIL, and with `--fix` set the field to `yes` and
 mirror the governance delta's memory-bank path into the third column. Print the
 denial lines for the user to paste — never edit the governance delta yourself.
 
-If `docs/governance-delta.md` exists:
+If a governance delta exists:
 
 - Does its L0 allowlist deny `<paper>/**` and `<construction>/**`? If not, this
   is a **FAIL**: an L0 fast track that can reach the draft would let an agent

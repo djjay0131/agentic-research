@@ -81,6 +81,26 @@ because the code side may draw on it too.
      Template files: where the custom .cls/.sty/.bst live, or "bundled". -->
 <!-- Page Limit: an integer, or 0 for no limit. research-checks reads this. -->
 
+## Peer Review
+
+<!-- Used by /research:peer-review. Standards are referenced, not vendored:
+     https://github.com/acmsigsoft/EmpiricalStandards. Write "none" for a field
+     that does not apply. For a proposal, name the programme's merit criteria
+     under Score Scale. -->
+
+| Field | Value |
+|---|---|
+| Empirical Standard(s) | none |
+| Venue Call | none |
+| Review Form | none |
+| Score Scale | accept-to-reject (generic) |
+
+**House Style**
+
+<!-- One rule per bullet. Empty by default: ship no house-style rules unless
+     the author asks for them. Typical entries are project preferences, not
+     universal rules: "no em-dashes", "vary sentence length". -->
+
 ## Own Bibliography
 
 Path: {{OWN_BIB}}
@@ -92,12 +112,13 @@ Path: {{OWN_BIB}}
 
 Governance delta present: {{HAS_GOVERNANCE}}
 
-<!-- research-checks.mjs reconciles this field against whether
-     docs/governance-delta.md actually exists, and FAILs on a mismatch. If you
-     adopt agentic-governance after this repo was scaffolded, set this to yes
-     and run /research:audit for the L0 allowlist lines. -->
+<!-- research-checks.mjs looks for `llm/governance/governance-delta.md` first,
+     then the legacy `docs/governance-delta.md`, reconciles this field against
+     whether one actually exists, and FAILs on a mismatch. If you adopt
+     agentic-governance after this repo was scaffolded, set this to yes and run
+     /research:audit for the L0 allowlist lines. -->
 
-<!-- If yes, docs/governance-delta.md is authoritative for the memory-bank and
+<!-- If yes, the governance delta is authoritative for the memory-bank and
      roadmap paths, and this file defers to it rather than redeclaring them.
      Add these lines to that delta's L0 allowlist — paper prose is semantic
      work and must never ride the L0 fast track:

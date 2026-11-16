@@ -1,6 +1,6 @@
 {
   "name": "agentic-research",
-  "description": "Paper, proposal, and position-paper tooling: writing agents, verified citations, originality review, and repo scaffolding",
+  "description": "Paper, proposal, and position-paper tooling: writing agents, verified citations, originality review, independent peer review, and repo scaffolding",
   "owner": {
     "name": "djjay0131",
     "email": "djjay@vt.edu"
@@ -9,8 +9,8 @@
     {
       "name": "research",
       "source": "./research",
-      "description": "Scaffold and run an academic writing project: /research:establish, /research:audit, /research:add-paper, /research:citation-matrix, /research:originality-check, plus 8 writing agents",
-      "version": "1.8.0",
+      "description": "Scaffold and run an academic writing project: /research:establish, /research:audit, /research:add-paper, /research:citation-matrix, /research:originality-check, /research:peer-review, plus 11 writing and review agents",
+      "version": "1.9.0",
       "author": { "name": "djjay0131" }
     }
   ]

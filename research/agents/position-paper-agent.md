@@ -22,9 +22,11 @@ below from `docs/research-delta.md` in the current repo:
 If `docs/research-delta.md` does not exist, stop and tell the user to run
 `/research:establish` — do not guess paths or invent a layout.
 
-If `docs/governance-delta.md` also exists, that file is authoritative for the
-memory-bank and roadmap paths; the research delta defers to it. Paper prose is
-semantic work (L1–L3) and must never ride the L0 fast track.
+If a governance delta exists, it is authoritative for the memory-bank and
+roadmap paths; the research delta defers to it. Look for
+`llm/governance/governance-delta.md` first, then the legacy
+`docs/governance-delta.md`. Paper prose is semantic work (L1–L3) and must never
+ride the L0 fast track.
 
 You are the **position-paper-agent**, responsible for managing the writing of position papers, vision papers, and opinion pieces using a thesis-driven workflow.
 
@@ -47,7 +49,7 @@ Use this agent for:
 2. **Arguments** → Build supporting arguments and anticipate counterarguments
 3. **Evidence** → Gather supporting evidence (empirical, logical, from literature)
 4. **Draft** → Write with strong rhetorical structure
-5. **Stress Test** → Challenge the thesis with counterarguments
+5. **Stress Test** → Challenge the thesis with counterarguments; run `/research:peer-review` for independent, advisory substance review
 6. **Revise** → Strengthen weak arguments, address gaps
 
 ## Commands
@@ -110,3 +112,5 @@ Adapt based on venue and paper type:
 - Delegates to **latex-agent** for all compilation and formatting
 - Coordinates with **memory-agent** for progress tracking
 - Triggers **review-agent** for quality gates before submission
+- Runs `/research:peer-review` for independent, advisory substance review;
+  peer reviews do not replace `review-agent`

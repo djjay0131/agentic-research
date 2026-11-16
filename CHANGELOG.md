@@ -1,5 +1,74 @@
 # Changelog
 
+## 1.9.0 — 2026-11-14
+
+### Peer review, with three independent personas
+The plugin reviewed **form**, not **substance**. `review-agent` checked
+citations, compilation, placeholders and consistency, and a paper could pass
+every check and still be rejected for an unsupported claim, missing related
+work, or an introduction that promised more than the paper delivered.
+
+New `/research:peer-review` runs three reviewers modeled on a program committee,
+each in a **fresh context** with no access to another persona's review:
+
+- `methods-reviewer` — is it sound? Walks the matching ACM SIGSOFT Empirical
+  Standard's essential and desirable attributes, traces each RQ to its evidence,
+  and checks validity and reproducibility.
+- `venue-reviewer` — is it new, and does it fit? Reads the venue's own call and
+  review form, scores on its scale, and names the closest prior work.
+- `reader-reviewer` — does it land? Checks the narrative contract, the
+  first-page test, captions, and the delta's House Style.
+
+A `meta-review.md` aggregates their points of agreement, their disagreements,
+and the ranked essential fixes. It adds no new criticism. Reviews are
+**advisory**: `review-agent` remains the merge gate, and a human decides what to
+act on. Records live under `<construction>/reviews/`, never in the paper tree.
+
+The standards are referenced at
+`https://github.com/acmsigsoft/EmpiricalStandards`, not vendored, and no
+house-style rules ship by default.
+
+### The check validates structure, not quality
+New `peer-review` check in `research-checks.mjs`. It resolves the construction
+path from the delta and, for every review set, FAILs on missing frontmatter or
+sections, two personas sharing a `reviewer_session`, a persona naming another
+persona's file, disagreement on `paper_commit`, and a missing or incomplete
+meta-review. It WARNs when the latest set reviews an older `paper_tree` and when
+the delta has no Peer Review section. It says nothing about whether a review is
+any good, and the README says so.
+
+### The delta and lifecycle learned about peer review
+The research delta template gains a `## Peer Review` section for the empirical
+standard(s), venue call, review form, score scale and an optional House Style
+bullet list. `establish` Step 2b asks for those values (every question
+skippable, defaults left as `none` / generic), and the upgrade path appends the
+section without filling in the owner's values. `audit` reports a missing
+section and the date and staleness of the latest review set. `review-agent` now
+states that peer reviews are advisory; `paper-agent`, `proposal-agent` and
+`position-paper-agent` point their internal-review stage at
+`/research:peer-review`.
+
+### Tests
+New `research/scripts/research-checks.test.mjs`, dependency-free: fixture repos
+in a temp directory for every row of the check table, plus a clean repo with no
+reviews. Each fixture asserts the exact status, the suite runs twice and
+asserts identical output, and the existing checks must produce no FAIL on a
+clean fixture. New `.github/workflows/ci.yml` runs it on Node 20.
+
+### Fixed
+`governance.sync` only looked for the governance delta at
+`docs/governance-delta.md`. `agentic-governance` v0.3+ keeps it at
+`llm/governance/governance-delta.md`, so governed repos FAILed and a v1.9.0
+rollout could overwrite locally patched copies. The check and its messages now
+look at `llm/governance/governance-delta.md` first, then the legacy
+`docs/governance-delta.md`, naming the path actually found (or both candidates
+when neither exists). Agents, skills and the delta template state the same
+lookup order.
+
+### OpenCode compatibility moves to 1.10.0
+The OpenCode-compatibility work previously scoped as 1.9.0 is now 1.10.0. This
+release is Claude Code only.
+
 ## 1.8.0 — 2026-08-31
 
 Both changes from a collaborator's first run — a grant writer, not the author.

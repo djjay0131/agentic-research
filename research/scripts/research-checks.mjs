@@ -16,7 +16,7 @@
  */
 import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { join, extname, dirname } from 'node:path';
-import { execSync } from 'node:child_process';
+import { execSync, execFileSync } from 'node:child_process';
 
 // Locate the repo root by walking up for docs/research-delta.md, so the script
 // works from the repo root, from inside the paper subtree, or from CI.
@@ -42,6 +42,7 @@ const fail = (c, m) => results.push({ check: c, status: 'FAIL', message: m });
 
 const read = (p) => { try { return readFileSync(join(ROOT, p), 'utf8'); } catch { return null; } };
 const has = (p) => existsSync(join(ROOT, p));
+const GOV_DELTA = ['llm/governance/governance-delta.md', 'docs/governance-delta.md'].find(has) || null;
 
 function walk(dir, exts, acc = []) {
   const abs = join(ROOT, dir);
@@ -68,7 +69,7 @@ if (!delta) {
     .trim()
     .replace(/^\*\*|\*\*$/g, '')
     // A provenance annotation may follow the value in the same cell, e.g.
-    //   `llm/memory_bank/` (from docs/governance-delta.md - do not change here)
+    //   `llm/memory_bank/` (from the governance delta - do not change here)
     // Strip it: the value is what precedes the parenthetical.
     .replace(/\s*\((?:from|source|via|see|per)\b[^)]*\)\s*$/i, '')
     .replace(/\s*<!--[^>]*-->\s*$/, '')
@@ -184,23 +185,24 @@ if (delta) {
     const m = delta.match(/^\s*Governance delta present\s*:\s*(\w+)/im);
     return m ? /^(yes|true)$/i.test(m[1]) : null;
   })();
-  const actual = has('docs/governance-delta.md');
+  const actual = GOV_DELTA !== null;
 
   if (claimed === null) {
     warn('governance.sync', 'delta has no "Governance delta present" field — cannot reconcile');
   } else if (claimed === actual) {
     pass('governance.sync', actual
-      ? 'declares governance present, and docs/governance-delta.md exists'
+      ? `declares governance present, and ${GOV_DELTA} exists`
       : 'declares no governance, and none present');
   } else if (actual && !claimed) {
     fail('governance.sync',
-      'delta says "Governance delta present: no" but docs/governance-delta.md exists — ' +
+      `delta says "Governance delta present: no" but ${GOV_DELTA} exists — ` +
       'governance was adopted after this repo was scaffolded. Set the field to yes, ' +
       'mirror the memory-bank path from the governance delta, and run /research:audit ' +
       'to get the L0 allowlist lines that are missing.');
   } else {
     fail('governance.sync',
-      'delta says "Governance delta present: yes" but docs/governance-delta.md is missing — ' +
+      'delta says "Governance delta present: yes" but neither ' +
+      'llm/governance/governance-delta.md nor docs/governance-delta.md is present — ' +
       'either it was deleted, or the field was set by hand. Every path this delta says it ' +
       'mirrors from governance is now unsourced.');
   }
@@ -208,7 +210,7 @@ if (delta) {
   // Reverse-order repos never got the L0 denials printed, because research ran
   // before there was a delta to add them to.
   if (actual) {
-    const gov = read('docs/governance-delta.md') || '';
+    const gov = read(GOV_DELTA) || '';
     const wantDenies = [`deny ${cfg.paperDir}/**`];
     if (cfg.construction) wantDenies.push(`deny ${cfg.construction.replace(/\/+$/, '')}/design/**`);
     wantDenies.push('deny docs/research-delta.md');
@@ -255,6 +257,148 @@ if (delta) {
   ghosts.length
     ? warn('clone-safety', `empty and will vanish on clone — add a .gitkeep: ${ghosts.join(', ')}`)
     : pass('clone-safety', 'no empty directories that a clone would drop');
+}
+
+/* ---------- 4d. Peer-review records ---------- */
+// Structure and independence markers only. This check cannot judge whether a
+// review is any good, and the README says so.
+if (delta) {
+  const REVIEW_PERSONAS = ['methods', 'venue', 'reader'];
+  const REQUIRED_FM = ['persona', 'stage', 'paper_commit', 'paper_tree',
+                       'reviewer_session', 'plugin_version', 'confidence', 'score'];
+  const REQUIRED_SECTIONS = ['## Summary', '## Essential fixes', '## Desirable fixes',
+                             '## Strengths', '## Could not assess'];
+  const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const parseFm = (text) => {
+    const m = text.match(/^\uFEFF?---\r?\n([\s\S]*?)\r?\n---\r?\n?/);
+    if (!m) return null;
+    const fm = {};
+    for (const raw of m[1].split(/\r?\n/)) {
+      const line = raw.trim();
+      if (!line || line.startsWith('#')) continue;
+      const kv = line.match(/^([A-Za-z_][\w-]*)\s*:\s*(.*)$/);
+      if (!kv) continue;
+      let v = kv[2].trim().replace(/^["'](.*)["']$/, '$1');
+      if (/^\[.*\]$/.test(v)) v = v.slice(1, -1).split(',').map((s) => s.trim()).filter(Boolean);
+      fm[kv[1]] = v;
+    }
+    return fm;
+  };
+  const personaList = (v) => Array.isArray(v)
+    ? v
+    : (v ? String(v).split(',').map((s) => s.trim()).filter(Boolean) : []);
+
+  if (!/^##\s+Peer Review\b/im.test(delta)) {
+    warn('peer-review', 'delta has no "## Peer Review" section — add the empirical standard(s), venue call, review form, score scale, and house style');
+  }
+
+  if (!cfg.construction) {
+    warn('peer-review', 'no Construction Path in the delta — review records not checked');
+  } else {
+    const reviewsRel = join(cfg.construction, 'reviews');
+    const reviewsAbs = join(ROOT, reviewsRel);
+    if (!existsSync(reviewsAbs)) {
+      pass('peer-review', 'no reviews yet');
+    } else {
+      const sets = readdirSync(reviewsAbs)
+        .filter((e) => { try { return statSync(join(reviewsAbs, e)).isDirectory(); } catch { return false; } })
+        .sort();
+
+      if (!sets.length) pass('peer-review', 'no reviews yet');
+
+      for (const set of sets) {
+        const setRel = join(reviewsRel, set);
+        const setAbs = join(ROOT, setRel);
+        const present = REVIEW_PERSONAS.filter((p) => existsSync(join(setAbs, `${p}.md`)));
+        const problems = [];
+        const parsed = [];
+        const sessions = [];
+        const commits = new Set();
+
+        for (const persona of present) {
+          const text = readFileSync(join(setAbs, `${persona}.md`), 'utf8');
+          const fm = parseFm(text);
+          if (!fm) { problems.push(`${persona}.md has no frontmatter`); continue; }
+
+          const missingFields = REQUIRED_FM.filter((f) => fm[f] === undefined || fm[f] === '');
+          if (missingFields.length) problems.push(`${persona}.md missing frontmatter: ${missingFields.join(', ')}`);
+
+          const missingSections = REQUIRED_SECTIONS.filter((s) => !new RegExp(`^${escapeRe(s)}\\s*$`, 'm').test(text));
+          if (missingSections.length) problems.push(`${persona}.md missing section(s): ${missingSections.join(', ')}`);
+
+          if (fm.reviewer_session) sessions.push({ persona, id: String(fm.reviewer_session) });
+          if (fm.paper_commit) commits.add(String(fm.paper_commit));
+          parsed.push({ persona, text });
+        }
+
+        if (!present.length) problems.push('no persona review files (methods.md, venue.md, reader.md)');
+
+        // Independence: two persona files may not share a reviewer_session.
+        const bySession = new Map();
+        for (const s of sessions) {
+          if (!bySession.has(s.id)) bySession.set(s.id, []);
+          bySession.get(s.id).push(s.persona);
+        }
+        for (const [id, people] of bySession) {
+          if (people.length > 1) problems.push(`reviewer_session "${id}" is shared by ${people.join(', ')} — independence violated`);
+        }
+
+        // Independence: a persona may not name another persona's review file.
+        for (const { persona, text } of parsed) {
+          const named = REVIEW_PERSONAS.filter((other) => other !== persona && new RegExp(`\\b${other}\\.md\\b`).test(text));
+          if (named.length) problems.push(`${persona}.md names another persona's file: ${named.map((n) => `${n}.md`).join(', ')} — independence violated`);
+        }
+
+        if (commits.size > 1) problems.push(`persona files disagree on paper_commit: ${[...commits].join(', ')}`);
+
+        const metaAbs = join(setAbs, 'meta-review.md');
+        if (!existsSync(metaAbs)) {
+          problems.push('meta-review.md is missing');
+        } else {
+          const metaFm = parseFm(readFileSync(metaAbs, 'utf8'));
+          const aggregated = personaList(metaFm?.personas);
+          if (!metaFm || !aggregated.length) {
+            problems.push(`meta-review.md does not list the personas it aggregates (should include: ${present.join(', ') || 'none'})`);
+          } else {
+            const absent = present.filter((p) => !aggregated.includes(p));
+            if (absent.length) problems.push(`meta-review.md is missing persona(s) it should aggregate: ${absent.join(', ')}`);
+          }
+        }
+
+        if (problems.length) fail('peer-review', `${setRel}: ${problems.join('; ')}`);
+        else pass('peer-review', `${setRel}: ${present.length} persona review(s) and meta-review are well formed`);
+      }
+
+      // Only the latest review set is compared with the current paper tree;
+      // an old set that was superseded should not keep warning forever.
+      const latest = sets[sets.length - 1];
+      if (latest) {
+        const latestAbs = join(reviewsAbs, latest);
+        let reviewTree = null;
+        if (existsSync(join(latestAbs, 'meta-review.md'))) {
+          const fm = parseFm(readFileSync(join(latestAbs, 'meta-review.md'), 'utf8'));
+          if (fm && fm.paper_tree) reviewTree = String(fm.paper_tree);
+        }
+        if (!reviewTree) {
+          for (const persona of REVIEW_PERSONAS) {
+            const p = join(latestAbs, `${persona}.md`);
+            if (!existsSync(p)) continue;
+            const fm = parseFm(readFileSync(p, 'utf8'));
+            if (fm && fm.paper_tree) { reviewTree = String(fm.paper_tree); break; }
+          }
+        }
+        let currentTree = null;
+        try {
+          currentTree = execFileSync('git', ['rev-parse', `HEAD:${cfg.paperDir}`], {
+            cwd: ROOT, stdio: ['ignore', 'pipe', 'ignore'],
+          }).toString().trim();
+        } catch { /* not a git repo, or the paper subtree is untracked */ }
+        if (reviewTree && currentTree && reviewTree !== currentTree) {
+          warn('peer-review', `${join(reviewsRel, latest)}: reviews are of an older draft (reviewed tree ${reviewTree.slice(0, 12)}…, current ${currentTree.slice(0, 12)}…)`);
+        }
+      }
+    }
+  }
 }
 
 /* ---------- 5b. Paper subtree is source-only ---------- */

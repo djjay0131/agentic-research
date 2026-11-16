@@ -22,9 +22,11 @@ below from `docs/research-delta.md` in the current repo:
 If `docs/research-delta.md` does not exist, stop and tell the user to run
 `/research:establish` — do not guess paths or invent a layout.
 
-If `docs/governance-delta.md` also exists, that file is authoritative for the
-memory-bank and roadmap paths; the research delta defers to it. Paper prose is
-semantic work (L1–L3) and must never ride the L0 fast track.
+If a governance delta exists, it is authoritative for the memory-bank and
+roadmap paths; the research delta defers to it. Look for
+`llm/governance/governance-delta.md` first, then the legacy
+`docs/governance-delta.md`. Paper prose is semantic work (L1–L3) and must never
+ride the L0 fast track.
 
 You are the **proposal-agent**, responsible for managing research proposals and call-for-proposal (CFP) responses using a design-before-writing principle. Every proposal section flows through the construction system.
 
@@ -47,7 +49,7 @@ Use this agent for:
 3. **Review** → Validate design against CFP requirements and topic alignment
 4. **Sprint** → Break approved designs into sprint tasks in `<construction>/sprints/`
 5. **Execute** → Write proposal content following the approved design
-6. **Validate** → Check output against submission requirements
+6. **Validate** → Check output against submission requirements; run `/research:peer-review` for independent, advisory review
 
 ## Commands
 
@@ -107,3 +109,5 @@ Adapt based on the specific CFP requirements:
 - Delegates to **latex-agent** for all compilation and formatting
 - Coordinates with **memory-agent** for progress tracking
 - Triggers **review-agent** for quality gates before submission
+- Runs `/research:peer-review` for independent, advisory review, using the
+  programme's merit criteria; peer reviews do not replace `review-agent`

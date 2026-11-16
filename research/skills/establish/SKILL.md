@@ -50,7 +50,8 @@ produces the old layout with no warning, which is worse than failing.
 - Read `${CLAUDE_PLUGIN_ROOT}/../VERSION` for the version to pin.
 - If `docs/research-delta.md` already exists, this is an **upgrade**, not a fresh
   install: skip to the upgrade path at the end of this file.
-- Check for `docs/governance-delta.md`. If present, this repo also uses
+- Look for `llm/governance/governance-delta.md` first, then the legacy
+  `docs/governance-delta.md`. If one is present, this repo also uses
   `agentic-governance` — see Step 3.
 - Check the toolchain: `latexmk`, `pdflatex`, `node` (≥18), `pdfinfo`, `git`.
   If anything is missing, **run the `preflight` skill's detection and offer its
@@ -147,6 +148,27 @@ research goals. **Never write a project brief you were not told.**
    later needs its own scripts, the user creates that directory when they have
    something to put in it.
 7. **Own bibliography path** — for the self-plagiarism check. Offer to skip.
+8. **Peer review setup (skippable).** This feeds `/research:peer-review`; every
+   question can be skipped and the delta keeps a working default.
+
+   - **Empirical Standard(s).** Which ACM SIGSOFT Empirical Standard(s) match the
+     paper's method? Reference them, never vendor them:
+     `https://github.com/acmsigsoft/EmpiricalStandards`. If the author already
+     put a copy in `files/`, use that path instead. Write `none` if unknown.
+   - **Venue call and review form.** Where are the call and the review form? Look
+     in `files/` first and propose the paths you find; write `none` if the venue
+     publishes neither. If there is no form, the reviewer uses a generic scale
+     and says so.
+   - **Score scale.** The venue's own scale (for example `1-5`, `accept/reject`,
+     or `strong accept … strong reject`), or `accept-to-reject (generic)`.
+     For a proposal, name the programme's merit criteria here (for NSF,
+     Intellectual Merit and Broader Impacts).
+   - **House Style.** Rules the author wants the reader reviewer to apply.
+     **Ship none by default** and add only what the author asks for, one rule per
+     bullet. Never invent a house style.
+
+   If the author skips all of this, leave the template's defaults
+   (`none` / `accept-to-reject (generic)`) in place rather than inventing values.
 
 Derive title, author, institution, and email from git config and the README
 where you can; confirm rather than ask cold.
@@ -157,7 +179,13 @@ Copy `templates/research-delta-template.md` → `docs/research-delta.md` and
 substitute every `{{PLACEHOLDER}}`. Leave none behind — `research-checks.mjs`
 fails the repo if any survive.
 
-**If `docs/governance-delta.md` exists:**
+Then fill the **Peer Review** section from Step 2b: replace the template
+defaults with the standard(s), call path, review form path, and score scale the
+author gave you. Leave the `House Style` bullets empty unless the author asked
+for specific rules. If Step 2b was skipped, keep `none` /
+`accept-to-reject (generic)` — do not invent a standard or a house style.
+
+**If a governance delta exists:**
 
 - **Mirror, do not invent.** Read the memory-bank and roadmap paths out of the
   governance delta and write *those exact values* into the research delta, each
@@ -168,7 +196,7 @@ fails the repo if any survive.
   inside the value cell becomes part of the path when the delta is parsed:
 
   ```
-  | Memory Bank | `llm/memory_bank/` | from docs/governance-delta.md — do not change here |
+  | Memory Bank | `llm/memory_bank/` | from the governance delta — do not change here |
   ```
 
   Set `Governance delta present: yes`. Do not choose a different path, and do
@@ -203,7 +231,7 @@ fails the repo if any survive.
 
 ### Step 3a — Governance adopted later
 
-If `docs/governance-delta.md` is **absent**, write `Governance delta present: no`
+If no governance delta is found at either path, write `Governance delta present: no`
 — and tell the user, in the final report, that if they adopt `agentic-governance`
 later they must come back and run `/research:audit`, because that field will
 then be stale and the L0 denial lines will never have been printed.
@@ -492,6 +520,12 @@ Do not overwrite. Instead:
 2. Diff the existing delta against `templates/research-delta-template.md` and add
    only the fields the template has and the delta lacks. Never change a value
    the user has set.
+   - If the delta has no `## Peer Review` section, append it from the template
+     with the values left at their defaults (`none` / `accept-to-reject
+     (generic)`, empty House Style). Do not fill in the owner's standard, venue
+     call, review form, score scale, or house style for them — the rollout
+     leaves those for the owner. The `peer-review` check warns while the section
+     is absent, so add it even when every value stays `none`.
 3. Refresh `<paper>/scripts/` and its `research-checks.mjs` from the templates
    (these are plugin-owned), preserving `<paper>/scripts/_paths.sh`. If the repo
    predates v1.1 and has `scripts/` or `construction/` at the root, say so and
