@@ -60,7 +60,7 @@ function git(dir, args) {
   }).toString().trim();
 }
 
-function deltaText({ peerReview = true, governance = 'no' } = {}) {
+function deltaText({ peerReview = true, governance = 'no', gate = 'off', gateStage = 'draft' } = {}) {
   return `# Research Delta: Fixture
 
 Status: Draft
@@ -106,6 +106,8 @@ ${peerReview ? `## Peer Review
 | Venue Call | none |
 | Review Form | none |
 | Score Scale | accept-to-reject |
+| Gate | ${gate} |
+| Gate Stage | ${gateStage} |
 
 **House Style**
 
@@ -126,9 +128,9 @@ deny docs/research-delta.md
 `;
 }
 
-function createFixture({ peerReview = true, governance = 'no', govPath = null } = {}) {
+function createFixture({ peerReview = true, governance = 'no', govPath = null, gate = 'off', gateStage = 'draft' } = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'ar-peer-review-'));
-  write(dir, 'docs/research-delta.md', deltaText({ peerReview, governance }));
+  write(dir, 'docs/research-delta.md', deltaText({ peerReview, governance, gate, gateStage }));
   if (govPath) write(dir, govPath, governanceDeltaText());
   write(dir, 'paper/main.tex', `\\documentclass{article}
 \\begin{document}
@@ -201,13 +203,17 @@ Nothing.
 ${extra}`;
 }
 
-function meta(ids, personas, overrides = {}) {
+function meta(ids, personas, overrides = {}, sections = {}) {
   const values = {
     paper_commit: ids.commit,
     paper_tree: ids.tree,
     plugin_version: '1.9.0',
     ...overrides,
   };
+  const ranked = sections.ranked ? `\n${sections.ranked}\n` : '';
+  const dispositions = sections.dispositions === undefined
+    ? ''
+    : `\n## Dispositions\n\n${sections.dispositions}\n`;
   return `---
 paper_commit: ${values.paper_commit}
 paper_tree: ${values.paper_tree}
@@ -219,8 +225,17 @@ personas: [${personas.join(', ')}]
 ## Agreement
 ## Disagreement
 ## Ranked essential fixes
+${ranked}
 ## Scores
-`;
+${dispositions}`;
+}
+
+function dispositionTable(rows = []) {
+  return [
+    '| # | Essential fix | Decision | Evidence |',
+    '|---|---|---|---|',
+    ...rows.map((r) => `| ${r.id} | ${r.fix} | ${r.decision} | ${r.evidence} |`),
+  ].join('\n');
 }
 
 function addSet(dir, set, files) {
@@ -229,14 +244,35 @@ function addSet(dir, set, files) {
   }
 }
 
+function addCompleteSet(dir, set, ids, {
+  reviewOverrides = {},
+  metaOverrides = {},
+  ranked = '',
+  dispositions = dispositionTable(),
+} = {}) {
+  addSet(dir, set, {
+    'methods.md': review('methods', ids, reviewOverrides),
+    'venue.md': review('venue', ids, reviewOverrides),
+    'reader.md': review('reader', ids, reviewOverrides),
+    'meta-review.md': meta(ids, ['methods', 'venue', 'reader'], metaOverrides,
+      { ranked, dispositions }),
+  });
+}
+
 function runChecker(dir) {
-  const res = spawnSync(process.execPath, [CHECKER, '--json'], {
+  const invoke = () => spawnSync(process.execPath, [CHECKER, '--json'], {
     cwd: dir,
     encoding: 'utf8',
   });
+  // Every fixture runs twice; a nondeterministic check is a bug in the check.
+  const first = invoke();
+  const second = invoke();
+  assert.equal(first.status, second.status, 'checker exit status changed between identical runs');
+  assert.equal(first.stdout, second.stdout, 'checker output changed between identical runs');
+  assert.equal(first.stderr, second.stderr, 'checker stderr changed between identical runs');
   let data = null;
-  try { data = JSON.parse(res.stdout); } catch { /* asserted below */ }
-  return { status: res.status, stdout: res.stdout, stderr: res.stderr, data };
+  try { data = JSON.parse(first.stdout); } catch { /* asserted below */ }
+  return { status: first.status, stdout: first.stdout, stderr: first.stderr, data };
 }
 
 function peerResults(run) {
@@ -481,6 +517,206 @@ test('checker output is identical across two runs', () => {
     assert.equal(first.stderr, second.stderr);
   } finally { cleanup(dir); }
 });
+
+/* ---------- §3.3 gate behavior: one fixture per row per mode ---------- */
+
+const GATE_MODES = ['off', 'warn', 'required'];
+const withGateResult = (mode, base = ['PASS']) =>
+  mode === 'off' ? base : [...base, mode === 'warn' ? 'WARN' : 'FAIL'];
+
+for (const mode of GATE_MODES) {
+  test(`§3.3 gate ${mode}: no review set`, () => {
+    const { dir } = createFixture({ gate: mode });
+    try {
+      const run = runChecker(dir);
+      assert.ok(run.data, `checker did not emit JSON: ${run.stderr}`);
+      const expected = mode === 'off' ? ['PASS'] : [mode === 'warn' ? 'WARN' : 'FAIL'];
+      assertPeer(run, expected, /no reviews yet/);
+    } finally { cleanup(dir); }
+  });
+}
+
+for (const mode of GATE_MODES) {
+  test(`§3.3 gate ${mode}: latest set's stage is earlier than Gate Stage`, () => {
+    const { dir, ids } = createFixture({ gate: mode, gateStage: 'camera-ready' });
+    try {
+      addCompleteSet(dir, REVIEW_SET, ids);
+      const run = runChecker(dir);
+      assert.ok(run.data, `checker did not emit JSON: ${run.stderr}`);
+      if (mode === 'off') assertPeer(run, withGateResult(mode));
+      else assertPeer(run, withGateResult(mode), /earlier than Gate Stage/);
+    } finally { cleanup(dir); }
+  });
+}
+
+for (const mode of GATE_MODES) {
+  test(`§3.3 gate ${mode}: ranked fix missing a row or Decision pending`, () => {
+    const { dir, ids } = createFixture({ gate: mode });
+    try {
+      addCompleteSet(dir, REVIEW_SET, ids, {
+        ranked: '1. Fix alpha\n2. Fix beta',
+        dispositions: dispositionTable([
+          { id: 1, fix: 'Fix alpha', decision: 'pending', evidence: '' },
+        ]),
+      });
+      const run = runChecker(dir);
+      assert.ok(run.data, `checker did not emit JSON: ${run.stderr}`);
+      if (mode === 'off') {
+        assertPeer(run, withGateResult(mode));
+      } else {
+        assertPeer(run, withGateResult(mode), /has no Dispositions row/);
+        assert.ok(peerResults(run).some((r) => /pending/.test(r.message)),
+          `pending Decision was not reported: ${JSON.stringify(peerResults(run))}`);
+      }
+    } finally { cleanup(dir); }
+  });
+}
+
+for (const mode of GATE_MODES) {
+  test(`§3.3 gate ${mode}: fixed without a commit SHA in history`, () => {
+    const { dir, ids } = createFixture({ gate: mode });
+    try {
+      addCompleteSet(dir, REVIEW_SET, ids, {
+        ranked: '1. Fix alpha\n2. Fix beta',
+        dispositions: dispositionTable([
+          { id: 1, fix: 'Fix alpha', decision: 'fixed', evidence: 'done' },
+          { id: 2, fix: 'Fix beta', decision: 'fixed', evidence: 'f'.repeat(40) },
+        ]),
+      });
+      const run = runChecker(dir);
+      assert.ok(run.data, `checker did not emit JSON: ${run.stderr}`);
+      if (mode === 'off') {
+        assertPeer(run, withGateResult(mode));
+      } else {
+        assertPeer(run, withGateResult(mode), /without a commit SHA/);
+        assert.ok(peerResults(run).some((r) => /not in history/.test(r.message)),
+          `missing commit was not reported: ${JSON.stringify(peerResults(run))}`);
+      }
+    } finally { cleanup(dir); }
+  });
+}
+
+for (const mode of GATE_MODES) {
+  test(`§3.3 gate ${mode}: wont-fix or deferred with empty Evidence`, () => {
+    const { dir, ids } = createFixture({ gate: mode });
+    try {
+      addCompleteSet(dir, REVIEW_SET, ids, {
+        ranked: '1. Fix alpha\n2. Fix beta',
+        dispositions: dispositionTable([
+          { id: 1, fix: 'Fix alpha', decision: 'wont-fix', evidence: '' },
+          { id: 2, fix: 'Fix beta', decision: 'deferred', evidence: '' },
+        ]),
+      });
+      const run = runChecker(dir);
+      assert.ok(run.data, `checker did not emit JSON: ${run.stderr}`);
+      if (mode === 'off') {
+        assertPeer(run, withGateResult(mode));
+      } else {
+        assertPeer(run, withGateResult(mode), /wont-fix with empty Evidence/);
+        assert.ok(peerResults(run).some((r) => /deferred with empty Evidence/.test(r.message)),
+          `empty deferred evidence was not reported: ${JSON.stringify(peerResults(run))}`);
+      }
+    } finally { cleanup(dir); }
+  });
+}
+
+for (const mode of GATE_MODES) {
+  test(`§3.3 gate ${mode}: reviewed paper_commit is not an ancestor of HEAD`, () => {
+    const { dir, ids } = createFixture({ gate: mode });
+    try {
+      const side = git(dir, ['commit-tree', ids.tree, '-m', 'side commit']);
+      addCompleteSet(dir, REVIEW_SET, ids, {
+        reviewOverrides: { paper_commit: side },
+        metaOverrides: { paper_commit: side },
+      });
+      const run = runChecker(dir);
+      assert.ok(run.data, `checker did not emit JSON: ${run.stderr}`);
+      if (mode === 'off') assertPeer(run, withGateResult(mode));
+      else assertPeer(run, withGateResult(mode), /not an ancestor of HEAD/);
+    } finally { cleanup(dir); }
+  });
+}
+
+for (const mode of GATE_MODES) {
+  test(`§3.3 gate ${mode}: paper changed since the reviewed tree stays WARN`, () => {
+    const { dir, ids } = createFixture({ gate: mode });
+    try {
+      const oldTree = '0'.repeat(40);
+      addCompleteSet(dir, REVIEW_SET, ids, {
+        reviewOverrides: { paper_tree: oldTree },
+        metaOverrides: { paper_tree: oldTree },
+      });
+      const run = runChecker(dir);
+      assert.ok(run.data, `checker did not emit JSON: ${run.stderr}`);
+      assertPeer(run, ['PASS', 'WARN'], /older draft/);
+    } finally { cleanup(dir); }
+  });
+}
+
+/* ---------- §3.4 follow-ups: latest set precedence and meta fields ---------- */
+
+test('§3.4 latest set: date outranks stage', () => {
+  const { dir, ids } = createFixture();
+  try {
+    const oldTree = '0'.repeat(40);
+    addCompleteSet(dir, '2026-11-13-camera-ready', ids);
+    addCompleteSet(dir, '2026-11-14-outline', ids, {
+      reviewOverrides: { paper_tree: oldTree },
+      metaOverrides: { paper_tree: oldTree },
+    });
+    const run = runChecker(dir);
+    assert.ok(run.data, `checker did not emit JSON: ${run.stderr}`);
+    assertPeer(run, ['PASS', 'PASS', 'WARN'], /older draft/);
+    assert.ok(peerResults(run).some((r) => /2026-11-14-outline/.test(r.message)),
+      `latest set was not 2026-11-14-outline: ${JSON.stringify(peerResults(run))}`);
+  } finally { cleanup(dir); }
+});
+
+test('§3.4 latest set: same date, later stage wins', () => {
+  const { dir, ids } = createFixture();
+  try {
+    const oldTree = '0'.repeat(40);
+    addCompleteSet(dir, '2026-11-14-outline', ids);
+    addCompleteSet(dir, '2026-11-14-draft', ids, {
+      reviewOverrides: { paper_tree: oldTree },
+      metaOverrides: { paper_tree: oldTree },
+    });
+    const run = runChecker(dir);
+    assert.ok(run.data, `checker did not emit JSON: ${run.stderr}`);
+    assertPeer(run, ['PASS', 'PASS', 'WARN'], /older draft/);
+    assert.ok(peerResults(run).some((r) => /2026-11-14-draft/.test(r.message)),
+      `latest set was not 2026-11-14-draft: ${JSON.stringify(peerResults(run))}`);
+  } finally { cleanup(dir); }
+});
+
+test('§3.4 latest set: same date and stage, directory name breaks the tie', () => {
+  const { dir, ids } = createFixture();
+  try {
+    const oldTree = '0'.repeat(40);
+    addCompleteSet(dir, '2026-11-14-draft', ids);
+    addCompleteSet(dir, '2026-11-14-draft-b', ids, {
+      reviewOverrides: { paper_tree: oldTree },
+      metaOverrides: { paper_tree: oldTree },
+    });
+    const run = runChecker(dir);
+    assert.ok(run.data, `checker did not emit JSON: ${run.stderr}`);
+    assertPeer(run, ['PASS', 'PASS', 'WARN'], /older draft/);
+    assert.ok(peerResults(run).some((r) => /2026-11-14-draft-b/.test(r.message)),
+      `latest set was not 2026-11-14-draft-b: ${JSON.stringify(peerResults(run))}`);
+  } finally { cleanup(dir); }
+});
+
+for (const field of ['paper_commit', 'paper_tree', 'plugin_version']) {
+  test(`§3.4 meta-review missing ${field}: FAIL`, () => {
+    const { dir, ids } = createFixture();
+    try {
+      addCompleteSet(dir, REVIEW_SET, ids, { metaOverrides: { [field]: '' } });
+      const run = runChecker(dir);
+      assert.ok(run.data, `checker did not emit JSON: ${run.stderr}`);
+      assertPeer(run, ['FAIL'], new RegExp(`meta-review\\.md missing frontmatter: .*${field}`));
+    } finally { cleanup(dir); }
+  });
+}
 
 /* ------------------------------------------------------------------------- */
 
