@@ -3,11 +3,12 @@
  * upgrade.mjs — deterministic, mechanical upgrade of an adopting repo.
  *
  *   node research/scripts/upgrade.mjs <repo-path> [--dry-run] [--json]
+ *                                      [--force] [--show-diff]
  *
  * Reads the repo's docs/research-delta.md, adds any template section or
  * Field/Value table row the delta lacks (never changing a value the owner set),
- * refreshes the plugin-owned scripts under <paper>/scripts/ (preserving
- * _paths.sh), and updates the version pin last.
+ * refreshes unmodified plugin-owned scripts under <paper>/scripts/ (preserving
+ * _paths.sh and keeping local edits), and updates the version pin last.
  *
  * The judgment parts of an upgrade — layout migration, what to tell the owner —
  * stay in the establish skill. This script is the reproducible part.
@@ -25,6 +26,7 @@ import {
   copyFileSync,
   chmodSync,
 } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { join, dirname, resolve, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -32,14 +34,19 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const PLUGIN_ROOT = resolve(HERE, '..');
 const REPO_ROOT = resolve(PLUGIN_ROOT, '..');
 const TEMPLATE_PATH = join(PLUGIN_ROOT, 'templates', 'research-delta-template.md');
+const RELEASED_HASHES_PATH = join(
+  PLUGIN_ROOT, 'templates', 'scripts', 'RELEASED-HASHES.json'
+);
 const VERSION_PATH = join(REPO_ROOT, 'VERSION');
 const DELTA_REL = 'docs/research-delta.md';
 
-const USAGE = `usage: upgrade.mjs <repo-path> [--dry-run] [--json]
+const USAGE = `usage: upgrade.mjs <repo-path> [--dry-run] [--json] [--force] [--show-diff]
 
   <repo-path>  repository containing docs/research-delta.md
   --dry-run    print the change list without writing
   --json       emit the change list as JSON
+  --force      overwrite locally modified plugin scripts too
+  --show-diff  show a unified diff for each locally modified script kept
 `;
 
 function badInvocation(message) {
@@ -51,10 +58,14 @@ function parseArgs(argv) {
   let repo = null;
   let dryRun = false;
   let json = false;
+  let force = false;
+  let showDiff = false;
 
   for (const arg of argv) {
     if (arg === '--dry-run') dryRun = true;
     else if (arg === '--json') json = true;
+    else if (arg === '--force') force = true;
+    else if (arg === '--show-diff') showDiff = true;
     else if (arg === '-h' || arg === '--help') {
       process.stdout.write(USAGE);
       process.exit(0);
@@ -68,7 +79,7 @@ function parseArgs(argv) {
   }
 
   if (repo === null) badInvocation('missing <repo-path>');
-  return { repo: resolve(repo), repoDisplay: repo, dryRun, json };
+  return { repo: resolve(repo), repoDisplay: repo, dryRun, json, force, showDiff };
 }
 
 /* ------------------------------------------------------------------------- */
@@ -437,7 +448,8 @@ function updateVersionPin(text, pluginVersion) {
 function pluginScripts() {
   const templatesDir = join(PLUGIN_ROOT, 'templates', 'scripts');
   const scripts = readdirSync(templatesDir)
-    .filter((name) => name !== '_paths.sh')
+    .filter((name) => name !== '_paths.sh' && name !== 'RELEASED-HASHES.json')
+    .filter((name) => statSync(join(templatesDir, name)).isFile())
     .map((name) => ({ name, source: join(templatesDir, name) }));
   scripts.push({
     name: 'research-checks.mjs',
@@ -446,29 +458,152 @@ function pluginScripts() {
   return scripts.sort((a, b) => a.name.localeCompare(b.name));
 }
 
-function refreshScripts(repo, paperDir, dryRun, changes) {
+const sha256 = (buf) => createHash('sha256').update(buf).digest('hex');
+
+function releasedHashes() {
+  if (!existsSync(RELEASED_HASHES_PATH)) return {};
+  return JSON.parse(readFileSync(RELEASED_HASHES_PATH, 'utf8'));
+}
+
+function splitLines(text) {
+  const lines = text.split('\n');
+  if (lines.length > 0 && lines[lines.length - 1] === '') lines.pop();
+  return lines;
+}
+
+function lineDiff(a, b) {
+  const n = a.length;
+  const m = b.length;
+  const dp = Array.from({ length: n + 1 }, () => new Uint32Array(m + 1));
+  for (let i = n - 1; i >= 0; i--) {
+    for (let j = m - 1; j >= 0; j--) {
+      dp[i][j] = a[i] === b[j]
+        ? dp[i + 1][j + 1] + 1
+        : Math.max(dp[i + 1][j], dp[i][j + 1]);
+    }
+  }
+
+  const ops = [];
+  let i = 0;
+  let j = 0;
+  while (i < n && j < m) {
+    if (a[i] === b[j]) {
+      ops.push({ type: ' ', line: a[i] });
+      i++;
+      j++;
+    } else if (dp[i + 1][j] >= dp[i][j + 1]) {
+      ops.push({ type: '-', line: a[i] });
+      i++;
+    } else {
+      ops.push({ type: '+', line: b[j] });
+      j++;
+    }
+  }
+  while (i < n) ops.push({ type: '-', line: a[i++] });
+  while (j < m) ops.push({ type: '+', line: b[j++] });
+  return ops;
+}
+
+function unifiedDiff(oldText, newText, relPath, context = 3) {
+  const ops = lineDiff(splitLines(oldText), splitLines(newText));
+  const changed = [];
+  for (let i = 0; i < ops.length; i++) {
+    if (ops[i].type !== ' ') changed.push(i);
+  }
+  if (changed.length === 0) return '';
+
+  const ranges = [];
+  let start = Math.max(0, changed[0] - context);
+  let end = Math.min(ops.length - 1, changed[0] + context);
+  for (const index of changed.slice(1)) {
+    if (index - context <= end + 1) {
+      end = Math.min(ops.length - 1, index + context);
+    } else {
+      ranges.push([start, end]);
+      start = Math.max(0, index - context);
+      end = Math.min(ops.length - 1, index + context);
+    }
+  }
+  ranges.push([start, end]);
+
+  const oldBefore = new Array(ops.length + 1);
+  const newBefore = new Array(ops.length + 1);
+  let oldLine = 1;
+  let newLine = 1;
+  for (let i = 0; i < ops.length; i++) {
+    oldBefore[i] = oldLine;
+    newBefore[i] = newLine;
+    if (ops[i].type !== '+') oldLine++;
+    if (ops[i].type !== '-') newLine++;
+  }
+  oldBefore[ops.length] = oldLine;
+  newBefore[ops.length] = newLine;
+
+  let out = `--- a/${relPath}\n+++ b/${relPath}\n`;
+  for (const [from, to] of ranges) {
+    let oldCount = 0;
+    let newCount = 0;
+    for (let i = from; i <= to; i++) {
+      if (ops[i].type !== '+') oldCount++;
+      if (ops[i].type !== '-') newCount++;
+    }
+    out += `@@ -${oldBefore[from]},${oldCount} +${newBefore[from]},${newCount} @@\n`;
+    for (let i = from; i <= to; i++) {
+      out += `${ops[i].type}${ops[i].line}\n`;
+    }
+  }
+  return out;
+}
+
+function refreshScripts(repo, paperDir, options) {
+  const { dryRun, force, showDiff, released } = options;
   const targetDir = join(repo, paperDir, 'scripts');
   if (!dryRun) mkdirSync(targetDir, { recursive: true });
+
+  const changes = [];
+  const kept = [];
+  const diffs = [];
 
   for (const { name, source } of pluginScripts()) {
     const target = join(targetDir, name);
     const rel = relative(repo, target);
     const sourceText = readFileSync(source);
     const exists = existsSync(target) && statSync(target).isFile();
-    const same = exists && readFileSync(target).equals(sourceText);
 
-    if (same) continue;
+    if (!exists) {
+      changes.push({ action: 'add-script', path: rel });
+      if (!dryRun) {
+        copyFileSync(source, target);
+        chmodSync(target, 0o755);
+      }
+      continue;
+    }
 
-    changes.push({
-      action: exists ? 'update-script' : 'add-script',
-      path: rel,
-    });
+    const targetText = readFileSync(target);
+    if (targetText.equals(sourceText)) continue;
 
+    const known = Array.isArray(released[name])
+      && released[name].includes(sha256(targetText));
+
+    if (!known && !force) {
+      kept.push(rel);
+      if (showDiff) {
+        diffs.push({
+          path: rel,
+          diff: unifiedDiff(targetText.toString('utf8'), sourceText.toString('utf8'), rel),
+        });
+      }
+      continue;
+    }
+
+    changes.push({ action: 'update-script', path: rel });
     if (!dryRun) {
       copyFileSync(source, target);
       chmodSync(target, 0o755);
     }
   }
+
+  return { changes, kept, diffs };
 }
 
 /* ------------------------------------------------------------------------- */
@@ -476,7 +611,8 @@ function refreshScripts(repo, paperDir, dryRun, changes) {
 /* ------------------------------------------------------------------------- */
 
 function main() {
-  const { repo, repoDisplay, dryRun, json } = parseArgs(process.argv.slice(2));
+  const { repo, repoDisplay, dryRun, json, force, showDiff } =
+    parseArgs(process.argv.slice(2));
   const deltaPath = join(repo, DELTA_REL);
 
   if (!existsSync(deltaPath) || !statSync(deltaPath).isFile()) {
@@ -493,7 +629,13 @@ function main() {
   const changes = [...merged.changes];
 
   const paperDir = detectPaperDir(deltaText);
-  refreshScripts(repo, paperDir, dryRun, changes);
+  const scripts = refreshScripts(repo, paperDir, {
+    dryRun,
+    force,
+    showDiff,
+    released: releasedHashes(),
+  });
+  changes.push(...scripts.changes);
 
   const pinned = updateVersionPin(merged.text, pluginVersion);
   if (pinned.change) changes.push(pinned.change);
@@ -509,13 +651,14 @@ function main() {
       delta: DELTA_REL,
       dryRun,
       changes,
+      kept: scripts.kept,
     };
     process.stdout.write(`${JSON.stringify(output, null, 2)}\n`);
     return;
   }
 
   process.stdout.write(`agentic-research upgrade ${pluginVersion} -> ${repoDisplay}\n`);
-  if (changes.length === 0) {
+  if (changes.length === 0 && scripts.kept.length === 0) {
     process.stdout.write('  no changes; already current\n');
   } else {
     for (const change of changes) {
@@ -536,6 +679,12 @@ function main() {
       } else if (change.action === 'add-version') {
         process.stdout.write(`  + version: v${change.version}\n`);
       }
+    }
+    for (const path of scripts.kept) {
+      process.stdout.write(`  ! locally modified: ${path} (kept; plugin copy differs)\n`);
+    }
+    if (showDiff) {
+      for (const { diff } of scripts.diffs) process.stdout.write(diff);
     }
   }
   if (dryRun) process.stdout.write('  dry run: nothing written\n');
