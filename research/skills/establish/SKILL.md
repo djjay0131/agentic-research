@@ -514,23 +514,43 @@ Then report:
 
 ## Upgrade path (delta already exists)
 
-Do not overwrite. Instead:
+Do not overwrite. The mechanical part is scripted so every rollout is the same:
 
-1. Read the pinned version in the existing delta and compare with the plugin's `VERSION`.
-2. Diff the existing delta against `templates/research-delta-template.md` and add
-   only the fields the template has and the delta lacks. Never change a value
-   the user has set.
-   - If the delta has no `## Peer Review` section, append it from the template
-     with the values left at their defaults (`none` / `accept-to-reject
-     (generic)`, empty House Style). Do not fill in the owner's standard, venue
-     call, review form, score scale, or house style for them — the rollout
-     leaves those for the owner. The `peer-review` check warns while the section
-     is absent, so add it even when every value stays `none`.
-3. Refresh `<paper>/scripts/` and its `research-checks.mjs` from the templates
-   (these are plugin-owned), preserving `<paper>/scripts/_paths.sh`. If the repo
-   predates v1.1 and has `scripts/` or `construction/` at the root, say so and
-   offer the migration in §Upgrade: layout move.
-4. Report every change as a list, and update the version pin last.
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/upgrade.mjs" <repo-path> --dry-run
+node "${CLAUDE_PLUGIN_ROOT}/scripts/upgrade.mjs" <repo-path>
+```
+
+Add `--json` for a machine-readable change list. The script exits 0 on success,
+1 when `docs/research-delta.md` is missing, and 2 on bad invocation. It:
+
+1. Adds every template `## ` section and Field/Value table row the delta lacks,
+   in template order, with the template's defaults. It **never changes a value
+   the owner set**, and it leaves the optional Section Word Budgets planning
+   table alone.
+   - This is how a missing `## Peer Review` section arrives, with its values at
+     the defaults (`none` / `accept-to-reject (generic)`, empty House Style). Do
+     not fill in the owner's standard, venue call, review form, score scale, or
+     house style for them — the rollout leaves those for the owner.
+2. Refreshes the plugin-owned scripts under `<paper>/scripts/` (resolved from the
+   delta's Paper Path), including `research-checks.mjs`, and preserves the
+   repo's `_paths.sh`. Repo-local scripts it does not own are left untouched.
+3. Updates the version pin last, recognizing `vX.Y.Z`, `vX.Y`, and a pin written
+   in a table row; if the delta has no pin, it adds one and reports that.
+
+Show the dry-run change list before writing. Keep the judgment parts here:
+
+- If the repo predates v1.1 and has `scripts/`, `figures/` or `construction/` at
+  the root, say so and offer the migration in §Upgrade: layout move. The script
+  upgrades the declared paper subtree only; it will not move directories.
+- Read the pinned version before the run and compare it with the plugin's
+  `VERSION`, then report the version the upgrade moved from and to.
+- After the script, run the repo's checks. Report the script's change list, the
+  layout decision (migrated / left alone / declined), and anything the checks
+  still flag.
+
+Do not hand-edit the delta or copy scripts file by file — that is what made
+earlier rollouts differ from one another.
 
 
 ## Upgrade: layout move (pre-v1.1 repos)
