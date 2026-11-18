@@ -60,7 +60,7 @@ function walk(dir, exts, acc = []) {
 /* ---------- 1. Research delta ---------- */
 const DELTA_PATH = 'docs/research-delta.md';
 const delta = read(DELTA_PATH);
-const cfg = { paperDir: 'paper', mainTex: 'main.tex', bib: null, pageLimit: 0, memoryBank: null, construction: null };
+const cfg = { paperDir: 'paper', mainTex: 'main.tex', bib: null, pageLimit: 0, memoryBank: null, construction: null, gate: 'warn', gateStage: 'draft' };
 
 if (!delta) {
   fail('delta', `${DELTA_PATH} is missing. Run /research:establish.`);
@@ -98,6 +98,14 @@ if (!delta) {
   const pl        = field('Page Limit');
   cfg.pageLimit   = pl && /^\d+$/.test(pl) ? parseInt(pl, 10) : 0;
   for (const k of ['paperDir','memoryBank','construction']) if (cfg[k]) cfg[k] = cfg[k].replace(/\/+$/, '');
+
+  // The gate lives in the Peer Review section. Without that section there is
+  // no gate to configure, so the v1.9 behavior (advisory only) still applies.
+  const hasPeerSection = /^##\s+Peer Review\b/im.test(delta);
+  const gate = hasPeerSection ? (field('Gate') || 'warn').toLowerCase() : 'off';
+  cfg.gate = ['off', 'warn', 'required'].includes(gate) ? gate : 'warn';
+  const gateStage = hasPeerSection ? (field('Gate Stage') || 'draft').toLowerCase() : 'draft';
+  cfg.gateStage = ['outline', 'draft', 'camera-ready'].includes(gateStage) ? gateStage : 'draft';
 
   if (/\{\{[A-Z_]+\}\}/.test(delta)) fail('delta.filled', 'delta still contains {{PLACEHOLDER}} values');
   else pass('delta.filled', 'no unfilled placeholders');
@@ -261,13 +269,20 @@ if (delta) {
 
 /* ---------- 4d. Peer-review records ---------- */
 // Structure and independence markers only. This check cannot judge whether a
-// review is any good, and the README says so.
+// review is any good, and the README says so. The Gate/Gate Stage fields turn
+// the latest set into a merge gate; structural faults stay FAIL in every mode.
 if (delta) {
   const REVIEW_PERSONAS = ['methods', 'venue', 'reader'];
   const REQUIRED_FM = ['persona', 'stage', 'paper_commit', 'paper_tree',
                        'reviewer_session', 'plugin_version', 'confidence', 'score'];
+  const REQUIRED_META_FM = ['paper_commit', 'paper_tree', 'plugin_version'];
   const REQUIRED_SECTIONS = ['## Summary', '## Essential fixes', '## Desirable fixes',
                              '## Strengths', '## Could not assess'];
+  const STAGES = ['outline', 'draft', 'camera-ready'];
+  const stageRank = (stage) => {
+    const i = STAGES.indexOf(String(stage || '').trim().toLowerCase());
+    return i === -1 ? null : i;
+  };
   const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const parseFm = (text) => {
     const m = text.match(/^\uFEFF?---\r?\n([\s\S]*?)\r?\n---\r?\n?/);
@@ -287,6 +302,37 @@ if (delta) {
   const personaList = (v) => Array.isArray(v)
     ? v
     : (v ? String(v).split(',').map((s) => s.trim()).filter(Boolean) : []);
+  const setInfo = (name) => {
+    const m = name.match(/^(\d{4}-\d{2}-\d{2})(?:-(.+))?$/);
+    const date = m ? m[1] : name;
+    const suffix = m && m[2] ? m[2] : '';
+    const sm = suffix.match(/^(outline|draft|camera-ready)(?:$|-)/);
+    const stage = sm ? sm[1] : suffix;
+    return { name, date, stage, rank: stageRank(stage) };
+  };
+  const sectionBody = (text, heading) => {
+    const m = text.match(new RegExp(`^##\\s+${escapeRe(heading)}\\s*$`, 'im'));
+    if (!m) return null;
+    const rest = text.slice(m.index + m[0].length);
+    const next = rest.search(/^##\s+/m);
+    return next === -1 ? rest : rest.slice(0, next);
+  };
+  const reportGate = (message) => {
+    if (cfg.gate === 'off') return;
+    cfg.gate === 'required' ? fail('peer-review', message) : warn('peer-review', message);
+  };
+  const commitInHistory = (sha) => {
+    const s = String(sha || '').trim();
+    if (!/^[0-9a-f]{7,40}$/i.test(s)) return false;
+    try {
+      execFileSync('git', ['merge-base', '--is-ancestor', s, 'HEAD'], { cwd: ROOT, stdio: 'ignore' });
+      return true;
+    } catch { return false; }
+  };
+  const emptyEvidence = (v) => {
+    const evidence = String(v || '').trim();
+    return !evidence.replace(/[`*_]/g, '').trim() || /^[-—–]+$/.test(evidence);
+  };
 
   if (!/^##\s+Peer Review\b/im.test(delta)) {
     warn('peer-review', 'delta has no "## Peer Review" section — add the empirical standard(s), venue call, review form, score scale, and house style');
@@ -297,14 +343,28 @@ if (delta) {
   } else {
     const reviewsRel = join(cfg.construction, 'reviews');
     const reviewsAbs = join(ROOT, reviewsRel);
+    const reportNoReviews = () => {
+      if (cfg.gate === 'off') pass('peer-review', 'no reviews yet');
+      else if (cfg.gate === 'required') fail('peer-review', 'no reviews yet; Gate is required');
+      else warn('peer-review', 'no reviews yet; Gate is warn');
+    };
+
     if (!existsSync(reviewsAbs)) {
-      pass('peer-review', 'no reviews yet');
+      reportNoReviews();
     } else {
       const sets = readdirSync(reviewsAbs)
         .filter((e) => { try { return statSync(join(reviewsAbs, e)).isDirectory(); } catch { return false; } })
-        .sort();
+        .sort((a, b) => {
+          const A = setInfo(a);
+          const B = setInfo(b);
+          if (A.date !== B.date) return A.date < B.date ? -1 : 1;
+          const ar = A.rank === null ? STAGES.length : A.rank;
+          const br = B.rank === null ? STAGES.length : B.rank;
+          if (ar !== br) return ar - br;
+          return A.name.localeCompare(B.name);
+        });
 
-      if (!sets.length) pass('peer-review', 'no reviews yet');
+      if (!sets.length) reportNoReviews();
 
       for (const set of sets) {
         const setRel = join(reviewsRel, set);
@@ -356,6 +416,10 @@ if (delta) {
           problems.push('meta-review.md is missing');
         } else {
           const metaFm = parseFm(readFileSync(metaAbs, 'utf8'));
+          if (metaFm) {
+            const missingMeta = REQUIRED_META_FM.filter((f) => metaFm[f] === undefined || metaFm[f] === '');
+            if (missingMeta.length) problems.push(`meta-review.md missing frontmatter: ${missingMeta.join(', ')}`);
+          }
           const aggregated = personaList(metaFm?.personas);
           if (!metaFm || !aggregated.length) {
             problems.push(`meta-review.md does not list the personas it aggregates (should include: ${present.join(', ') || 'none'})`);
@@ -370,15 +434,106 @@ if (delta) {
       }
 
       // Only the latest review set is compared with the current paper tree;
-      // an old set that was superseded should not keep warning forever.
+      // an old set that was superseded should not keep warning forever. The
+      // latest is by date, then stage order, then directory name (§3.4).
       const latest = sets[sets.length - 1];
       if (latest) {
         const latestAbs = join(reviewsAbs, latest);
-        let reviewTree = null;
-        if (existsSync(join(latestAbs, 'meta-review.md'))) {
-          const fm = parseFm(readFileSync(join(latestAbs, 'meta-review.md'), 'utf8'));
-          if (fm && fm.paper_tree) reviewTree = String(fm.paper_tree);
+        const latestRel = join(reviewsRel, latest);
+        const latestInfo = setInfo(latest);
+        const metaPath = join(latestAbs, 'meta-review.md');
+        const metaText = existsSync(metaPath) ? readFileSync(metaPath, 'utf8') : '';
+        const metaFm = metaText ? parseFm(metaText) : null;
+
+        // Gate stage: the latest set must be at least as advanced as Gate Stage.
+        let actualStage = stageRank(latestInfo.stage) !== null ? latestInfo.stage : null;
+        if (!actualStage) {
+          for (const persona of REVIEW_PERSONAS) {
+            const p = join(latestAbs, `${persona}.md`);
+            if (!existsSync(p)) continue;
+            const fm = parseFm(readFileSync(p, 'utf8'));
+            if (fm && stageRank(fm.stage) !== null) { actualStage = String(fm.stage).toLowerCase(); break; }
+          }
         }
+        const actualRank = stageRank(actualStage);
+        const gateRank = stageRank(cfg.gateStage);
+        if (cfg.gate !== 'off' && actualRank !== null && gateRank !== null && actualRank < gateRank) {
+          reportGate(`${latestRel}: latest review set is at stage "${actualStage}", earlier than Gate Stage "${cfg.gateStage}"`);
+        }
+
+        // Dispositions: every ranked essential fix needs a decision, and the
+        // decision's evidence must be verifiable.
+        const rankedBody = metaText ? sectionBody(metaText, 'Ranked essential fixes') : null;
+        const fixes = [];
+        if (rankedBody) {
+          for (const raw of rankedBody.split(/\r?\n/)) {
+            const line = raw.trim();
+            if (!line) continue;
+            if (/^\|\s*:?-{3,}/.test(line)) continue;
+            if (line.startsWith('|')) {
+              const cells = line.replace(/^\|/, '').replace(/\|$/, '').split('|').map((s) => s.trim());
+              if (!cells.length || /^#$/i.test(cells[0])) continue;
+              const n = cells[0].match(/^(\d+)[.)]?$/);
+              if (!n) continue;
+              fixes.push({ id: parseInt(n[1], 10), text: cells[1] || '' });
+              continue;
+            }
+            let m = line.match(/^(\d+)[.)]\s+(.+)$/);
+            if (m) { fixes.push({ id: parseInt(m[1], 10), text: m[2] }); continue; }
+            m = line.match(/^[-*]\s+(.+)$/);
+            if (m) { fixes.push({ id: fixes.length + 1, text: m[1] }); continue; }
+          }
+        }
+
+        const dispositions = new Map();
+        const dispBody = metaText ? sectionBody(metaText, 'Dispositions') : null;
+        if (dispBody) {
+          for (const raw of dispBody.split(/\r?\n/)) {
+            const line = raw.trim();
+            if (!line.startsWith('|')) continue;
+            const cells = line.replace(/^\|/, '').replace(/\|$/, '').split('|').map((s) => s.trim());
+            if (cells.length < 3) continue;
+            if (/^#$/i.test(cells[0])) continue;
+            if (/^:?-{3,}/.test(cells[0])) continue;
+            const n = cells[0].match(/^(\d+)[.)]?$/);
+            if (!n) continue;
+            const decision = cells[2].toLowerCase().replace(/[`*_]/g, '').replace(/\s+/g, '-').trim();
+            dispositions.set(parseInt(n[1], 10), { decision, evidence: cells[3] || '', raw: cells[2] });
+          }
+        }
+
+        const dispIssues = [];
+        if (!dispBody && (fixes.length || cfg.gate === 'required')) {
+          dispIssues.push('meta-review.md has no "## Dispositions" section');
+        }
+        for (const fix of fixes) {
+          const row = dispositions.get(fix.id);
+          const label = `ranked essential fix ${fix.id} (${fix.text})`;
+          if (!row) { dispIssues.push(`${label} has no Dispositions row`); continue; }
+          if (!row.decision || row.decision === 'pending') {
+            dispIssues.push(`${label} has Decision "${row.raw || ''}" (pending)`);
+          } else if (row.decision === 'fixed') {
+            const sha = (row.evidence.match(/\b[0-9a-f]{7,40}\b/i) || [])[0];
+            if (!sha) dispIssues.push(`${label} is fixed without a commit SHA in Evidence`);
+            else if (!commitInHistory(sha)) dispIssues.push(`${label} is fixed but commit ${sha.slice(0, 12)}… is not in history`);
+          } else if (row.decision === 'wont-fix' || row.decision === 'deferred') {
+            if (emptyEvidence(row.evidence)) dispIssues.push(`${label} is ${row.decision} with empty Evidence`);
+          } else {
+            dispIssues.push(`${label} has an invalid Decision "${row.raw}"`);
+          }
+        }
+        if (dispIssues.length) reportGate(`${latestRel}: ${dispIssues.join('; ')}`);
+
+        // Reviewed paper_commit must be an ancestor of HEAD.
+        const reviewedCommit = (metaFm && metaFm.paper_commit) ? String(metaFm.paper_commit) : null;
+        if (cfg.gate !== 'off' && reviewedCommit && !commitInHistory(reviewedCommit)) {
+          reportGate(`${latestRel}: reviewed paper_commit ${reviewedCommit} is not an ancestor of HEAD`);
+        }
+
+        // Paper changed since the reviewed commit stays a WARN in every mode:
+        // fixing what the reviewers found changes the paper.
+        let reviewTree = null;
+        if (metaFm && metaFm.paper_tree) reviewTree = String(metaFm.paper_tree);
         if (!reviewTree) {
           for (const persona of REVIEW_PERSONAS) {
             const p = join(latestAbs, `${persona}.md`);
@@ -394,7 +549,7 @@ if (delta) {
           }).toString().trim();
         } catch { /* not a git repo, or the paper subtree is untracked */ }
         if (reviewTree && currentTree && reviewTree !== currentTree) {
-          warn('peer-review', `${join(reviewsRel, latest)}: reviews are of an older draft (reviewed tree ${reviewTree.slice(0, 12)}…, current ${currentTree.slice(0, 12)}…)`);
+          warn('peer-review', `${latestRel}: reviews are of an older draft (reviewed tree ${reviewTree.slice(0, 12)}…, current ${currentTree.slice(0, 12)}…)`);
         }
       }
     }

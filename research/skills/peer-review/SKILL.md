@@ -79,9 +79,14 @@ author to record it; the venue reviewer will use a generic scale and say so.
    ```
 
 4. **Run each requested persona as a separate subagent with a fresh context.**
+   Use the harness's own subagent mechanism: the `Task` tool in Claude Code, or
+   the task/subagent tool in OpenCode. The OpenCode installer generates the
+   agent names with a `research-` prefix: `research-methods-reviewer`,
+   `research-venue-reviewer`, and `research-reader-reviewer`.
+
    Give the subagent **only**:
-   - its agent file (`methods-reviewer`, `venue-reviewer`, or
-     `reader-reviewer`),
+   - its agent (`methods-reviewer`, `venue-reviewer`, or `reader-reviewer`;
+     `research-` prefixed under OpenCode),
    - the stage,
    - the resolved paths.
 
@@ -115,6 +120,13 @@ author to record it; the venue reviewer will use a generic scale and say so.
    ## Disagreement
    ## Ranked essential fixes
    ## Scores
+
+   ## Dispositions
+
+   | # | Essential fix | Decision | Evidence |
+   |---|---|---|---|
+   | 1 | <as ranked above> | pending | |
+   | 2 | ... | pending | |
    ```
 
    - **Agreement** — points where all reviewers agree.
@@ -124,6 +136,10 @@ author to record it; the venue reviewer will use a generic scale and say so.
      ranked, with the persona(s) that raised each and its location. Do not add
      fixes none of them raised.
    - **Scores** — the venue score and any other score recorded by a persona.
+   - **Dispositions** — one row per ranked essential fix, and **every Decision
+     is written as `pending`**. The reviewers never fill this table. A human
+     (or an agent instructed by one, through a normal PR) replaces each
+     `pending` with `fixed`, `wont-fix`, or `deferred` and supplies evidence.
 
    `personas` lists exactly the personas that ran. If only some ran, aggregate
    only those and list only those.

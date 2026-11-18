@@ -53,6 +53,9 @@ script is missing or older than the plugin's copy, say so (`--fix` refreshes it)
   standard and use a generic score scale. `--fix` may append the template
   section with its default `none` values; it may **not** invent a standard,
   venue call, review form, score scale, or house style.
+- Read the delta's `Gate` and `Gate Stage`. Report whether the latest set meets
+  the stage gate, and list any `Dispositions` rows still `pending`; under
+  `Gate: required` those block the merge.
 - List `<construction>/reviews/` and report the latest set's date and stage.
   Read its `paper_tree` and compare it with `git rev-parse HEAD:<paper>`. If
   they differ, report **"reviews are of an older draft"** and name both trees.

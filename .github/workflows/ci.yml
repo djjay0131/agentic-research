@@ -10,6 +10,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # gen-released-hashes reads released script history from main
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -17,3 +20,9 @@ jobs:
 
       - name: Run research-checks test suite
         run: node research/scripts/research-checks.test.mjs
+
+      - name: Run upgrader test suite
+        run: node research/scripts/upgrade.test.mjs
+
+      - name: Run OpenCode installer test suite
+        run: node research/opencode/install.test.mjs
